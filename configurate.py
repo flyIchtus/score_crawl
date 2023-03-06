@@ -85,8 +85,8 @@ def getAndNameDirs(root_expe_path):
                 
                 short_names.append('Instance_{}_Batch_{}_LR_{}'.format(instance, batch,lr))
                 
-                list_steps.append([51000*i for i in range(12)])
-                """
+                #list_steps.append([51000*i for i in range(12)])
+                
                 if int(batch)==0:
                     list_steps.append([0])
                 
@@ -95,7 +95,7 @@ def getAndNameDirs(root_expe_path):
                     
                 else:
                     list_steps.append([1500*k for k in range(22)])
-                """    
+                    
     data_dir_names, log_dir_names = [f+'/samples/' for f in names],[f+'/log/' for f in names]
     
     multi_config.data_dir_names = data_dir_names
