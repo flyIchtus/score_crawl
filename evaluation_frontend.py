@@ -208,7 +208,7 @@ class EnsembleMetricsCalculator(Experiment) :
               
                 data_list.append((metrics_list, {'real':dataset_r,'fake': files},\
                                   N_samples, N_samples,\
-                                  self.VI, self.VI_f, self.CI, step))
+                                  self.VI, self.VI_f, self.CI, step, data_dir))
             
             with Pool(num_proc) as p :
                 res = p.map(backend.eval_distance_metrics, data_list)
@@ -281,7 +281,7 @@ class EnsembleMetricsCalculator(Experiment) :
               
                 data = (metrics_list, {'real':dataset_r,'fake': files},\
                       N_samples, N_samples,
-                      self.VI, self.VI_f, self.CI, step)
+                      self.VI, self.VI_f, self.CI, step, data_dir)
        
                 res.append(backend.eval_distance_metrics(data))
       
@@ -341,7 +341,7 @@ class EnsembleMetricsCalculator(Experiment) :
             data_list.append((metric, 
                               {'real0':datasets[i][0],'real1': datasets[i][1]},
                               N_samples, N_samples,
-                              self.VI, self.VI, self.CI,i))
+                              self.VI, self.VI, self.CI,i, data_dir))
         
         with Pool(num_proc) as p :
             res = p.map(backend.eval_distance_metrics, data_list)
