@@ -28,7 +28,7 @@ import metrics4arome as metrics
 
 num_proc = backend.num_proc
 var_dict = backend.var_dict 
-data_dir = backend.data_dir
+data_dir = backend.data_dir_0
 
 #####################################
 
