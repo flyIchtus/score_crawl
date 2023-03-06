@@ -174,7 +174,6 @@ def load_batch(file_list,number,\
     if option=='fake':
         # in this case samples can either be in isolated files or grouped in batches
         
-        assert number <= 16384 # maximum number of generated samples
         assert var_indices_fake is not None # sanity check
         
         
