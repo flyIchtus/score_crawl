@@ -145,7 +145,7 @@ class EnsembleMetricsCalculator(Experiment) :
                 
         results=func(metrics_list)
             
-        N_samples_set = set([self.program[i][1] for i in range(len(program))])
+        N_samples_set = [self.program[i][1] for i in range(len(program))]
             
         N_samples_name = '_'.join([str(n) for n in N_samples_set])
         
