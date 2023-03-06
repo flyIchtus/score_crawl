@@ -398,7 +398,7 @@ class EnsembleMetricsCalculator(Experiment) :
           
             data=(metric, {'real0':datasets[i][0],'real1': datasets[i][1]},
                            N_samples, N_samples,
-                           self.VI, self.VI, self.CI, i)
+                           self.VI, self.VI, self.CI, i, data_dir)
         
             if i==0: res = [backend.eval_distance_metrics(data)]
             else :  
@@ -450,7 +450,7 @@ class EnsembleMetricsCalculator(Experiment) :
             dataset_r = backend.build_datasets(data_dir, self.program)   
             
             data_list = [(metrics_list, dataset_r, self.program[i][1], 
-                          self.VI, self.VI, self.CI, i, option) \
+                          self.VI, self.VI, self.CI, i, option, data_dir) \
                         for i, dataset in enumerate(dataset_r)]
             
             with Pool(num_proc) as p :
@@ -491,7 +491,7 @@ class EnsembleMetricsCalculator(Experiment) :
                         files = glob(self.data_dir_f+"_Fsample_"+str(step)+'_*.npy')
                         
                         data_list.append((metrics_list, files, N_samples, 
-                                          self.VI, self.VI_f, self.CI, step, option))
+                                          self.VI, self.VI_f, self.CI, step, option, data_dir))
                 with Pool(num_proc) as p :
                 
                     res = p.map(backend.global_dataset_eval, data_list)
