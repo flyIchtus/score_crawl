@@ -8,25 +8,25 @@ Created on Thu Apr 28 17:11:52 2022
 Metrics Executable
 
 """
-import score_crawl.evaluation_frontend as frontend
-from score_crawl.configurate import getAndNameDirs, select_Config
+import evaluation_frontend as frontend
+from configurate import getAndNameDirs, select_Config
 
 
-realdata_dir='/scratch/mrmn/brochetc/GAN_2D/Sud_Est_Baselines_IS_1_1.0_0_0_0_0_0_256_done/'
+realdata_dir='/scratch/mrmn/moldovang/IS_1_1.0_0_0_0_0_0_256_done/'
 
 
-root_expe_path='/scratch/mrmn/brochetc/GAN_2D/'
+root_expe_path='/scratch/mrmn/moldovang/'
 
     
 if __name__=="__main__":
     
     configuration_set = getAndNameDirs(root_expe_path)
     
-    N_samples=16384    
+    N_samples=100    
     program={i :(1,N_samples) for i in range(1)}  
     
-    distance_metrics_list=["W1_random_NUMPY", "W1_Center_NUMPY"]
-    standalone_metrics_list=["spectral_compute", "struct_metric"]
+    distance_metrics_list=["pw_W1", "multivar","W1_random_NUMPY", "W1_Center_NUMPY", "SWD_metric_torch", "quant_metric"]
+    standalone_metrics_list=["spectral_compute", "struct_metric","ls_metric"]
     
     for ind in range(configuration_set.length):
         
@@ -34,9 +34,13 @@ if __name__=="__main__":
          
         try :
             
-            mC=frontend.MetricsCalculator(expe_config, real_dir = realdata_dir, add_name = 'test_for_score_crawl', )
+            mC=frontend.EnsembleMetricsCalculator(expe_config, add_name = 'test_standalone', )
             
             mC.estimation(standalone_metrics_list, program, standalone=True, parallel=True)
+
+            mC=frontend.EnsembleMetricsCalculator(expe_config, add_name = 'test_distance', )
+
+            mC.estimation(distance_metrics_list, program, standalone=False, parallel=True)
            
         except (FileNotFoundError, IndexError) :
             print('File Not found  for {}  ! This can be due to either \

@@ -18,8 +18,8 @@ from multiprocessing import Pool
 from collections import defaultdict
 
 
-from score_crawl.configurate import Experiment
-import score_crawl.evaluation_backend as backend
+from configurate import Experiment
+import evaluation_backend as backend
 import metrics4arome as metrics
 
 

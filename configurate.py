@@ -9,7 +9,7 @@ metrics computation configuration tools
 
 """
 import argparse
-from score_crawl.evaluation_backend import var_dict
+from evaluation_backend import var_dict
 
 
 def str2bool(v):
