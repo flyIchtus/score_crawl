@@ -192,14 +192,15 @@ def define_levels(bivariates, nlevels):
 
 
 def space2batch(data):
-    """
-    A reshape operation.  Shape spatial dimension into batch samples.
-    
-    
-    """
+
     Shape=data.shape
     assert len(Shape)==4
-    a=data.reshape(Shape[0]*Shape[2]*Shape[3],Shape[1])
+    
+    data_list = []
+    for i in range(Shape[1]):
+        data_list.append(np.expand_dims(data[:,i,:,:].reshape(Shape[0] * Shape[2] * Shape[3]), axis= 1))
+    
+    a = np.concatenate(data_list, axis = 1)
     return a
 
 """def simple_stupid_load(data_name):

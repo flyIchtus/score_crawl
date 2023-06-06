@@ -27,7 +27,7 @@ import random
 num_proc = 8
 var_dict = {'rr': 0, 'u': 1, 'v': 2, 't2m': 3, 'orog': 4} # do not touch unless
                                                           # you know what u are doing
-data_dir_0 = '/scratch/mrmn/brochetc/GAN_2D/Sud_Est_Baselines_IS_1_1.0_0_0_0_0_0_256_done/'
+data_dir_0 = '/scratch/mrmn/moldovang/IS_1_1.0_0_0_0_0_0_256_done/'
 print(os.path.exists(data_dir_0))
 #####################################
 
