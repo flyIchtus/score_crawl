@@ -198,12 +198,14 @@ class EnsembleMetricsCalculator(Experiment) :
             for step in self.steps:
                 
                 #getting first (and only) item of the random real dataset program
-                dataset_r = backend.build_datasets(data_dir, self.program)[i0]
+                dataset_r = backend.build_datasets(data_dir, self.program, 
+                                                   real_prefix = self.real_prefix,
+                                                   fake_prefix = self.fake_prefix)[i0]
                 
                 N_samples = self.program[i0][1]
                 
                 #getting files to analyze from fake dataset
-                files = glob(self.data_dir_f+"_Fsample_"+str(step)+'_*.npy')
+                files = glob(self.data_dir_f + self.fake_prefix + str(step)+'_*.npy')
                 
               
                 data_list.append((metrics_list, {'real':dataset_r,'fake': files},\
@@ -271,12 +273,13 @@ class EnsembleMetricsCalculator(Experiment) :
             for step in self.steps:
                 
                 #getting first (and only) item of the random real dataset program
-                dataset_r = backend.build_datasets(data_dir, self.program)[i0]
-                
+                dataset_r = backend.build_datasets(data_dir, self.program, 
+                                                   real_prefix = self.real_prefix,
+                                                   fake_prefix = self.fake_prefix)[i0]
                 N_samples=self.program[i0][1]
                 
                 #getting files to analyze from fake dataset
-                files = glob(self.data_dir_f+"_Fsample_"+str(step)+'_*.npy')
+                files = glob(self.data_dir_f + self.fake_prefix + str(step)+'_*.npy')
                 
               
                 data = (metrics_list, {'real':dataset_r,'fake': files},\
@@ -329,7 +332,9 @@ class EnsembleMetricsCalculator(Experiment) :
         
         """
                 
-        datasets = backend.build_datasets(data_dir, self.program)
+        datasets = backend.build_datasets(data_dir, self.program,
+                                                   real_prefix = self.real_prefix,
+                                                   fake_prefix = self.fake_prefix)
         data_list = []         
     
         #getting the two random datasets programs
@@ -390,7 +395,9 @@ class EnsembleMetricsCalculator(Experiment) :
             
         #getting first (and only) item of the random real dataset program
         
-        datasets = backend.build_datasets(data_dir, self.program)
+        datasets = backend.build_datasets(data_dir, self.program,
+                                                   real_prefix = self.real_prefix,
+                                                   fake_prefix = self.fake_prefix)
             
         for i in range(len(datasets)):
             
@@ -447,7 +454,9 @@ class EnsembleMetricsCalculator(Experiment) :
         if option=='real':
             
             self.steps =[0]
-            dataset_r = backend.build_datasets(data_dir, self.program)   
+            dataset_r = backend.build_datasets(data_dir, self.program,  
+                                                   real_prefix = self.real_prefix,
+                                                   fake_prefix = self.fake_prefix) 
             
             data_list = [(metrics_list, dataset_r, self.program[i][1], 
                           self.VI, self.VI, self.CI, i, option, data_dir) \
@@ -488,7 +497,7 @@ class EnsembleMetricsCalculator(Experiment) :
                     #getting files to analyze from fake dataset
                     if option=='fake' :
                         
-                        files = glob(self.data_dir_f+"_Fsample_"+str(step)+'_*.npy')
+                        files = glob(self.data_dir_f + self.fake_prefix + str(step)+'_*.npy')
                         
                         data_list.append((metrics_list, files, N_samples, 
                                           self.VI, self.VI_f, self.CI, step, option, data_dir))

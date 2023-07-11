@@ -17,7 +17,7 @@ from configurate import getAndNameDirs, select_Config
     
 if __name__=="__main__":
     
-    configuration_set, N_samples = getAndNameDirs()
+    configuration_set, N_samples = getAndNameDirs(option = 'flex')
      
     program={i :(1,N_samples) for i in range(1)}  
     
@@ -27,17 +27,17 @@ if __name__=="__main__":
 
     for ind in range(configuration_set.length):
         
-        expe_config = select_Config(configuration_set, ind)
+        expe_config = select_Config(configuration_set, ind, option='flex')
          
         try :
             
-            mC=frontend.EnsembleMetricsCalculator(expe_config, add_name = 'test_standalone', )
+            mC=frontend.EnsembleMetricsCalculator(expe_config, add_name = 'test_standalone')
             
             mC.estimation(standalone_metrics_list, program, standalone=True, parallel=True)
 
-            mC=frontend.EnsembleMetricsCalculator(expe_config, add_name = 'test_distance', )
+            #mC=frontend.EnsembleMetricsCalculator(expe_config, add_name = 'test_distance', )
 
-            mC.estimation(distance_metrics_list, program, standalone=False, parallel=True)
+            #mC.estimation(distance_metrics_list, program, standalone=False, parallel=True)
            
         except (FileNotFoundError, IndexError) :
             print('File Not found  for {}  ! This can be due to either \
