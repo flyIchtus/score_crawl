@@ -56,10 +56,12 @@ def retrieve_domain_parameters(path, instance_num):
         
     return CI, var_names
 
-def getAndNameDirs(root_expe_path):
+def getAndNameDirs():
     
     parser=argparse.ArgumentParser()
     
+    parser.add_argument('--root_expe_path', type = str, help = 'Root of dir expe', default = '/scratch/mrmn/moldovang/')
+
     parser.add_argument('--glob_name', type = str, help = 'Global experiment name', default = 'stylegan2_stylegan_512')
 
     parser.add_argument('--expe_set', type = int, help = 'Set of experiments to dig in.', default = 1)
@@ -68,13 +70,22 @@ def getAndNameDirs(root_expe_path):
     parser.add_argument('--instance_num', type = str2list, help = 'Instances of experiment to dig in', default = [1,2,3,4])
     parser.add_argument('--variables', type = str2list, help = 'List of subset of variables to compute metrics on', default =[])
     parser.add_argument('--conditional', type = str2bool, help ='Whether experiment is conditional', default = False)
-    
+    parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
+
+
+
+
     multi_config=parser.parse_args()
-    
+
+
+
+    N_samples=multi_config.n_samples
     names=[]
     short_names=[]
     list_steps=[]
     
+    root_expe_path = multi_config.root_expe_path
+
     for lr in multi_config.lr0:
         for batch in multi_config.batch_sizes :
             for instance in multi_config.instance_num:
@@ -105,7 +116,7 @@ def getAndNameDirs(root_expe_path):
     
     multi_config.length = len(data_dir_names)
     
-    return multi_config
+    return multi_config, N_samples
 
 def select_Config(multi_config, index):
     """
