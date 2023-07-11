@@ -22,9 +22,9 @@ import metrics4arome.general_metrics as GM
 import metrics4arome.wasserstein_distances as WD
 import metrics4arome.sliced_wasserstein as SWD
 import metrics4arome.spectrum_analysis as Spectral
-import metrics4arome.inception_metrics as inception
-import metrics4arome.scattering_metric as scat
-import metrics4arome.structure_functions as sfunc
+# import metrics4arome.inception_metrics as inception
+# import metrics4arome.scattering_metric as scat
+# import metrics4arome.structure_functions as sfunc
 import metrics4arome.multivariate as multiv
 import metrics4arome.length_scales as ls
 import metrics4arome.quantiles_metric as quant
@@ -190,32 +190,33 @@ spectral_distrib = metric2D('Power Spectral Density Distribution ', \
 
 # FID score
 
-fid = metric2D('Fréchet Inception Distance  ',\
-             inception.FIDclass(inception.inceptionPath).FID,\
-             ['FID'])
+# fid = metric2D('Fréchet Inception Distance  ',\
+#              inception.FIDclass(inception.inceptionPath).FID,\
+#              ['FID'])
 
 # scattering metrics with sparsity and shape estimators
 
 
-scat_sparse = scat.scattering_metric(
-        J=4,L=8,shape=(127,127), estimators=['s21', 's22'],
-        frontend='torch', backend='torch', cuda=True
-                                   )
-#two versions of the same metrics
-scat_SWD_metric = metric2D('Scattering Estimators ', scat_sparse.scattering_sliced,\
-                       vars_wo_orog)
+# scat_sparse = scat.scattering_metric(
+#         J=4,L=8,shape=(127,127), estimators=['s21', 's22'],
+#         frontend='torch', backend='torch', cuda=True
+#                                    )
 
-scat_SWD_metric_renorm = metric2D('Scattering Estimators', scat_sparse.scattering_renorm,
-                              vars_wo_orog)
+# #two versions of the same metrics
+# scat_SWD_metric = metric2D('Scattering Estimators ', scat_sparse.scattering_sliced,\
+#                        vars_wo_orog)
 
-scat_rmse = metric2D('Scattering Estimators', scat_sparse.scattering_rmse,
-                              vars_wo_orog)
+# scat_SWD_metric_renorm = metric2D('Scattering Estimators', scat_sparse.scattering_renorm,
+#                               vars_wo_orog)
+
+# scat_rmse = metric2D('Scattering Estimators', scat_sparse.scattering_rmse,
+#                               vars_wo_orog)
 
 # structure functions 
 
-struct_metric = metric2D('First order structure function', 
-                         lambda data : sfunc.increments(data, max_length = 16),\
-                       vars_wo_orog)
+# struct_metric = metric2D('First order structure function', 
+#                          lambda data : sfunc.increments(data, max_length = 16),\
+#                        vars_wo_orog)
 
 #multivariate_comparisons
 multivar = metric2D('Multivariate data', multiv.multi_variate_correlations,\
