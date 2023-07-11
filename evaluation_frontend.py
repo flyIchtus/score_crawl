@@ -104,9 +104,7 @@ class EnsembleMetricsCalculator(Experiment) :
             
             assert set(metrics_list) <= metrics.distance_metrics
         
-        print("metrics_list", metrics_list)
         for metric in metrics_list :
-            print("metric", metric)
             assert hasattr(metrics, metric)
             
         ########################

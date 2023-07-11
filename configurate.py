@@ -70,9 +70,16 @@ def getAndNameDirs():
     parser.add_argument('--instance_num', type = str2list, help = 'Instances of experiment to dig in', default = [1,2,3,4])
     parser.add_argument('--variables', type = str2list, help = 'List of subset of variables to compute metrics on', default =[])
     parser.add_argument('--conditional', type = str2bool, help ='Whether experiment is conditional', default = False)
-    
+    parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
+
+
+
+
     multi_config=parser.parse_args()
-    
+
+
+
+    N_samples=multi_config.n_samples
     names=[]
     short_names=[]
     list_steps=[]
@@ -109,7 +116,7 @@ def getAndNameDirs():
     
     multi_config.length = len(data_dir_names)
     
-    return multi_config
+    return multi_config, N_samples
 
 def select_Config(multi_config, index):
     """
