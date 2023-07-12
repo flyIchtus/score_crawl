@@ -10,6 +10,7 @@ metrics computation configuration tools
 """
 import argparse
 from evaluation_backend import var_dict
+import os
 
 
 def str2bool(v):
@@ -56,69 +57,200 @@ def retrieve_domain_parameters(path, instance_num):
         
     return CI, var_names
 
-def getAndNameDirs():
+def getAndNameDirs(option = 'rigid'):
     
-    parser=argparse.ArgumentParser()
+    if option=='rigid':
+        
+        """
+        here it is supposed a strict naming of files and directories, with
+        
+        RootExpePath/-
+              |Set/-
+                   |glob_name (batch size, lr, etc...)/-
+                                                       |-Instance/ - ReadMe.txt
+                                                                 |- log/ - samples/ 
+                                
+                      
+        """
     
-    parser.add_argument('--root_expe_path', type = str, help = 'Root of dir expe', default = '/scratch/mrmn/moldovang/')
-
-    parser.add_argument('--glob_name', type = str, help = 'Global experiment name', default = 'stylegan2_stylegan_512')
-
-    parser.add_argument('--expe_set', type = int, help = 'Set of experiments to dig in.', default = 1)
-    parser.add_argument('--lr0', type = str2list, help = 'Set of initial learning rates', default = [0.001,0.005])
-    parser.add_argument('--batch_sizes',type = str2list, help = 'Set of batch sizes experimented', default=[8,16,32])
-    parser.add_argument('--instance_num', type = str2list, help = 'Instances of experiment to dig in', default = [1,2,3,4])
-    parser.add_argument('--variables', type = str2list, help = 'List of subset of variables to compute metrics on', default =[])
-    parser.add_argument('--conditional', type = str2bool, help ='Whether experiment is conditional', default = False)
-    parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
-
-
-
-
-    multi_config=parser.parse_args()
-
-
-
-    N_samples=multi_config.n_samples
-    names=[]
-    short_names=[]
-    list_steps=[]
+        parser=argparse.ArgumentParser()
+        
+        parser.add_argument('--root_expe_path', type = str, help = 'Root of dir expe', default = '/scratch/mrmn/moldovang/')
     
-    root_expe_path = multi_config.root_expe_path
-
-    for lr in multi_config.lr0:
-        for batch in multi_config.batch_sizes :
-            for instance in multi_config.instance_num:
-                
-                names.append(root_expe_path+'Set_'+str(multi_config.expe_set)\
-                                    +'/'+multi_config.glob_name+'_'+str(batch)\
-                                    +'_'+str(lr)+'_'+str(lr)+'/Instance_'+str(instance))
-                
-                short_names.append('Instance_{}_Batch_{}_LR_{}'.format(instance, batch,lr))
-                
-                #list_steps.append([51000*i for i in range(12)])
-                
-                if int(batch)==0:
-                    list_steps.append([0])
-                
-                if int(batch)<=64 and int(batch)>0:
-                    list_steps.append([1500*k for k in range(40)]+[59999])
+        parser.add_argument('--glob_name', type = str, help = 'Global experiment name', default = 'stylegan2_stylegan_512')
+    
+        parser.add_argument('--expe_set', type = int, help = 'Set of experiments to dig in.', default = 1)
+        parser.add_argument('--lr0', type = str2list, help = 'Set of initial learning rates', default = [0.001,0.005])
+        parser.add_argument('--batch_sizes',type = str2list, help = 'Set of batch sizes experimented', default=[8,16,32])
+        parser.add_argument('--instance_num', type = str2list, help = 'Instances of experiment to dig in', default = [1,2,3,4])
+        parser.add_argument('--variables', type = str2list, help = 'List of subset of variables to compute metrics on', default =[])
+        parser.add_argument('--conditional', type = str2bool, help ='Whether experiment is conditional', default = False)
+        parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)        
+        parser.add_argument('--fake_prefix', type=str, help = 'prefix for the fake -generated- files', default = '_Fsample_')
+        parser.add_argument('--real_prefix', type=str, help='prefix for the real data files', default = '_sample')
+        parser.add_argument('--list_steps', type=str2list, help='prefix for the real data files', default = ['0'])
+        
+        multi_config = parser.parse_args()
+ 
+        N_samples = multi_config.n_samples
+        
+        names=[]
+        short_names=[]
+        list_steps=[]
+        
+        root_expe_path = multi_config.root_expe_path
+    
+        for lr in multi_config.lr0:
+            for batch in multi_config.batch_sizes :
+                for instance in multi_config.instance_num:
                     
-                else:
-                    list_steps.append([1500*k for k in range(22)])
+                    names.append(root_expe_path+'Set_'+str(multi_config.expe_set)\
+                                        +'/'+multi_config.glob_name+'_'+str(batch)\
+                                        +'_'+str(lr)+'_'+str(lr)+'/Instance_'+str(instance))
                     
-    data_dir_names, log_dir_names = [f+'/samples/' for f in names],[f+'/log/' for f in names]
+                    short_names.append('Instance_{}_Batch_{}_LR_{}'.format(instance, batch,lr))
+                    
+                    #list_steps.append([51000*i for i in range(12)])
+                    
+                    if int(batch)==0:
+                        list_steps.append([0])
+                    
+                    if int(batch)<=64 and int(batch)>0:
+                        list_steps.append([1500*k for k in range(40)]+[59999])
+                        
+                    else:
+                        list_steps.append([1500*k for k in range(22)])
+                        
+        data_dir_names, log_dir_names = [f+'/samples/' for f in names],[f+'/log/' for f in names]
+        
+        multi_config.data_dir_names = data_dir_names
+        multi_config.log_dir_names = log_dir_names
+        multi_config.short_names = short_names
+        multi_config.list_steps = list_steps
+        
+        multi_config.length = len(data_dir_names)
+        
+    elif option=='flex':
+        
+        """
+        here it is supposed that sample data is directly available under the provided experiment sub-dirs
+        log directories, if not existent, will be created under those sub-dirs
+        """
+        
+        parser = argparse.ArgumentParser()
+        
+        parser.add_argument('--root_expe_path', type = str, help = 'Root of dir expe', default = '/scratch/mrmn/brochetc/')
+        parser.add_argument('--names', type = str2list, help = 'Experiment sub-dirs', default = [''])
+        parser.add_argument('--variables', type = str2list, help = 'List of subset of variables to compute metrics on', default =[])
+        parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
+        parser.add_argument('--fake_prefix', type=str, help = 'prefix for the fake -generated- files', default = '_Fsample_')
+        parser.add_argument('--real_prefix', type=str, help='prefix for the real data files', default = '_sample')
+        parser.add_argument('--list_steps', type=str2list, help='prefix for the real data files', default = ['0'])
+
+        multi_config = parser.parse_args()
+ 
+        N_samples = multi_config.n_samples
+        short_names = []
+        list_steps = []
+        
+        root_expe_path = multi_config.root_expe_path
+        
+        data_dir_names = []
+        short_names = []
+        log_dir_names = []
+        
+        for subdir in multi_config.names :
+            
+            data_dir_names.append(root_expe_path + subdir)
+            
+            logn = root_expe_path + subdir + 'log/'
+            
+            log_dir_names.append(logn)
+            
+            short_names.append(subdir)
+            
+            if not os.path.exists(logn):
+                os.mkdir(logn)
+                
+        list_steps = [[int(s) for s in multi_config.list_steps] for subdir in multi_config.names]
+            
+        multi_config.data_dir_names = data_dir_names
+        multi_config.log_dir_names = log_dir_names
+        multi_config.short_names = short_names
+        multi_config.list_steps = list_steps
+        
+        multi_config.length = len(data_dir_names) 
+            
+
+        
+    elif option=='samples_log' :
+        """
+        here it is supposed that sample data is available under the provided experiment sub-dirs + '/samples/
+        and that log directories can be found under sub-dirs + '/log/'
+        
+        RootExpePath/-
+              |Expe_dir/- log/ - samples/ ReadMe.txt
+        
+        """
+        
+        parser = argparse.ArgumentParser()
+        
+        parser.add_argument('--root_expe_path', type = str, help = 'Root of dir expe', default = '/scratch/mrmn/brochetc/')
+        parser.add_argument('--names', type = str2list, help = 'Experiment sub-dirs', default = [''])
+        parser.add_argument('--variables', type = str2list, help = 'List of subset of variables to compute metrics on', default =[])
+        parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
+        parser.add_argument('--fake_prefix', type=str, help = 'prefix for the fake -generated- files', default = '_Fsample_')
+        parser.add_argument('--real_prefix', type=str, help='prefix for the real data files', default = '_sample')
+        parser.add_argument('--list_steps', type=str2list, help='prefix for the real data files', default = ['0'])
+
+        multi_config = parser.parse_args()
+ 
+        N_samples = multi_config.n_samples
+        
+        short_names = []
+        list_steps = []
+        
+        root_expe_path = multi_config.root_expe_path
+        
+        data_dir_names = []
+        short_names = []
+        log_dir_names = []
+        
+        for subdir in multi_config.names :
+            
+            samn = root_expe_path + subdir + 'samples/'
+            
+            data_dir_names.append(samn)
+             
+            if not os.path.exists(samn):
+                os.mkdir(samn)
+            
+            logn = root_expe_path + subdir + 'log/'
+            
+            log_dir_names.append(logn)
+            
+            short_names.append(subdir)
+            
+            if not os.path.exists(logn):
+                os.mkdir(logn)
+                
+        list_steps = [[0] for subdir in multi_config.names]
+            
+        multi_config.data_dir_names = data_dir_names
+        multi_config.log_dir_names = log_dir_names
+        multi_config.short_names = short_names
+        multi_config.list_steps = list_steps
+        
+        multi_config.length = len(data_dir_names) 
     
-    multi_config.data_dir_names = data_dir_names
-    multi_config.log_dir_names = log_dir_names
-    multi_config.short_names = short_names
-    multi_config.list_steps = list_steps
-    
-    multi_config.length = len(data_dir_names)
+    else :
+        
+        raise ValueError('option {} not found'.format(option))
+        
     
     return multi_config, N_samples
 
-def select_Config(multi_config, index):
+def select_Config(multi_config, index, option='rigid'):
     """
     Select the configuration of a multi_config object corresponding to the given index
     and return it in an autonomous Namespace object
@@ -132,28 +264,75 @@ def select_Config(multi_config, index):
         
         config : argparse.Namespace object
     
-    """    
+    """
     
-    insts = len(multi_config.instance_num)
-    batches = len( multi_config.batch_sizes)
-    lr0s = len(multi_config.lr0)
+    if option=='rigid' :
     
+        insts = len(multi_config.instance_num)
+        batches = len( multi_config.batch_sizes)
+        lr0s = len(multi_config.lr0)
+        
+        
+        config = argparse.Namespace() # building autonomous configuration
+        
+        config.data_dir_f = multi_config.data_dir_names[index]
+        config.log_dir = multi_config.log_dir_names[index]
+        config.steps = multi_config.list_steps[index]
+        
+        config.short_name = multi_config.short_names[index]
+        instance_index = index%insts
+        
+        
+        config.lr0 = multi_config.lr0[((index//insts)//batches)%lr0s]
+        config.batch = multi_config.batch_sizes[((index//insts)%batches)]
+        config.instance_num = multi_config.instance_num[instance_index]
+        
+        config.variables = multi_config.variables ## assuming same subset of variables for each experiment, by construction
+        
+        config.real_prefix = multi_config.real_prefix
+        config.fake_prefix = multi_config.fake_prefix
     
-    config = argparse.Namespace() # building autonomous configuration
+    elif option=='flex' :
+        
+        config = argparse.Namespace() # building autonomous configuration
+        
+        config.data_dir_f = multi_config.data_dir_names[index]
+        config.log_dir = multi_config.log_dir_names[index]
+        config.steps = multi_config.list_steps[index]
+        
+        config.short_name = multi_config.short_names[index]      
+        
+        config.lr0 = 0
+        config.batch = 0
+        config.instance_num = 1
+        
+        config.variables = multi_config.variables ## assuming same subset of variables for each experiment, by construction
+        config.real_prefix = multi_config.real_prefix
+        config.fake_prefix = multi_config.fake_prefix
     
-    config.data_dir_f = multi_config.data_dir_names[index]
-    config.log_dir = multi_config.log_dir_names[index]
-    config.steps = multi_config.list_steps[index]
-    
-    config.short_name = multi_config.short_names[index]
-    instance_index = index%insts
-    
-    
-    config.lr0 = multi_config.lr0[((index//insts)//batches)%lr0s]
-    config.batch = multi_config.batch_sizes[((index//insts)%batches)]
-    config.instance_num = multi_config.instance_num[instance_index]
-    
-    config.variables = multi_config.variables ## assuming same subset of variables for each experiment, by construction
+    elif option=='samples_log' :
+        
+        config = argparse.Namespace() # building autonomous configuration
+        
+        config.data_dir_f = multi_config.data_dir_names[index]
+        config.log_dir = multi_config.log_dir_names[index]
+        config.steps = multi_config.list_steps[index]
+        
+        config.short_name = multi_config.short_names[index]      
+        
+        config.lr0 = 0
+        config.batch = 0
+        config.instance_num = 1
+        
+        config.variables = multi_config.variables ## assuming same subset of variables for each experiment, by construction
+        
+        
+        config.real_prefix = multi_config.real_prefix
+        config.fake_prefix = multi_config.fake_prefix
+        
+    else :
+        
+        raise ValueError('option {} not found'.format(option))
         
     return config
 
@@ -177,6 +356,9 @@ class Experiment():
         
         self.instance_num = expe_config.instance_num
         
+        self.real_prefix = expe_config.real_prefix
+        
+        self.fake_prefix = expe_config.fake_prefix
         
         ###### variable indices selection : unchanged if subset is [], else selected
         
