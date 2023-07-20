@@ -26,17 +26,16 @@ def str2list(li):
 
 
 parser=argparse.ArgumentParser()
-parser.add_argument('--path', type = str, help = 'Global Path', default =  '/scratch/mrmn/moldovang/Set_10/')
-parser.add_argument('--distance', type = str, help = 'distance', default = '/Instance_1/log/test_distance_distance_metrics_100.p')
-parser.add_argument('--standalone', type = str,  default = '/Instance_1/log/test_standalone_standalone_metrics_100.p')
+parser.add_argument('--path', type = str, help = 'Global Path', default =  '/scratch/mrmn/rabaultj/Set_final/Set_307/')
+parser.add_argument('--distance', type = str, help = 'distance', default = '/Instance_1/log/test_gens_distance_metrics_16380_16380_16380_16380_16380_16380_16380_16380_16380_16380.p')
+parser.add_argument('--standalone', type = str,  default = '/Instance_1/log/test_gens_standalone_metrics_16380_16380_16380_16380_16380_16380_16380_16380_16380_16380.p')
 parser.add_argument('--n_tests', type = int,  default = 1)
-parser.add_argument('--var_names', type = str2list,  default = ['u', 'v', 't2m'])
+parser.add_argument('--var_names', type = str2list,  default = ['u','v', 't2m'])
 parser.add_argument('--list_names', type = str2list,  default = ['AROME_RED_0_0.001_0.001'])
 opt=parser.parse_args()
 
 
 Path = opt.path
-
 
 #Distance = '/Instance_1/log/cond0_eval_distance_metrics_18944_18944_18944_18944_18944_18944_18944_18944_18944_18944.p'
 #Distance = '/Instance_1/log/cond0_eval_distance_metrics_9472_9472_9472_9472_9472_9472_9472_9472_9472_9472.p'
@@ -47,6 +46,9 @@ Standalone = opt.standalone  # '/Instance_1/log/test_standalone_standalone_metri
 N_tests = opt.n_tests
 var_names = opt.var_names  #  ['u', 'v', 't2m']
 N_vars = len(var_names)
+list_names = opt.list_names  #  ['AROME_RED_0_0.001_0.001']
+Length_list_names = len(list_names)
+
 #res=pickle.load(open('cond0_eval_distance_metrics_9472_9472_9472_9472_9472_9472_9472_9472_9472_9472.p', 'rb'))
     
 #stand_alone=pickle.load(open('cond0_eval_standalone_metrics_9472_9472_9472_9472_9472_9472_9472_9472_9472_9472.p', 'rb'))
@@ -80,13 +82,6 @@ N_vars = len(var_names)
 
 
 
-list_names = opt.list_names  #  ['AROME_RED_0_0.001_0.001']
-
-
-
-
-Length_list_names = len(list_names)
-
 SWD_scores = np.zeros((Length_list_names, N_tests, 5))
 Multivar_scores = np.zeros((Length_list_names, N_tests, 2,N_vars,100,100))
 for i in range(Length_list_names):
@@ -99,8 +94,6 @@ for i in range(Length_list_names):
 
 #######################################" PLOTING W1 MAP############################
 
-var_names = ['u', 'v', 't2m']
-N_vars = len(var_names)
 
 for i in range(Length_list_names):
     s_score = pickle.load(open(Path + list_names[i] + Distance, 'rb'))
@@ -125,7 +118,10 @@ for i in range(Length_list_names):
     
         ax = grid[j]
         axes.append(ax)
-        im = ax.imshow(1e3*PW[j,:,:], origin ='lower', cmap = 'coolwarm')
+        if N_vars ==1:
+            im = ax.imshow(1e3*PW[:,:], origin ='lower', cmap = 'coolwarm')
+        else : 
+            im = ax.imshow(1e3*PW[j,:,:], origin ='lower', cmap = 'coolwarm')
         cb = ax.cax.colorbar(im)
     
     
@@ -141,7 +137,7 @@ for i in range(Length_list_names):
 
 ################################Plotting spectra
 
-Spectrum_scores = np.zeros((Length_list_names, N_tests, 3, 45))
+Spectrum_scores = np.zeros((Length_list_names, N_tests, N_vars, 45))
 Error_spec = np.zeros((Length_list_names, 3))
 for i in range(Length_list_names):
     
@@ -226,7 +222,7 @@ for i in range(Length_list_names):
     
     grid = ImageGrid(fig, 111,
                     nrows_ncols=(2, N_vars),
-                    axes_pad=(0.35, 0.35),
+                    axes_pad=(0.35, 0.35), 
                     label_mode="L",
                     share_all=True,
                     cbar_location="bottom",
@@ -252,38 +248,39 @@ for i in range(Length_list_names):
     
     ######### computing statistics
     
-    diff_corr = real_corr - fake_corr_length
+    diff_corr = real_corr[:N_vars] - fake_corr_length
     
     mae_corr[i] = np.abs(diff_corr).mean()
     std_ae_corr[i] = np.abs(diff_corr).std()
     max_ae_corr[i] = np.abs(diff_corr).max()
 ###############################################"FINISHED CORR LENGTH###########################    
-
-for i in range(Length_list_names):
+if N_vars>2 :
+    for i in range(Length_list_names):
+        
+        #print("SWD scores for test", list_names[i], " are: ", np.mean(SWD_scores[i], axis=0))
+        d_score = pickle.load(open(Path + list_names[i] + Distance, 'rb'))
+        plt.rcParams.update({'font.size': 12})
+        
+        for j in range(N_tests):
     
-    #print("SWD scores for test", list_names[i], " are: ", np.mean(SWD_scores[i], axis=0))
-    d_score = pickle.load(open(Path + list_names[i] + Distance, 'rb'))
-    plt.rcParams.update({'font.size': 12})
+            Multivar_scores[i,j] = d_score[j]['multivar'].squeeze()
+        RES = np.mean(Multivar_scores[i], axis=0)
+        #print(RES.shape)
+        data_r,data_f = RES[0], RES[1]
+        #print(data_r.shape, data_f.shape)
     
-    for j in range(N_tests):
-        Multivar_scores[i,j] = d_score[j]['multivar'].squeeze()
-    RES = np.mean(Multivar_scores[i], axis=0)
-    #print(RES.shape)
-    data_r,data_f = RES[0], RES[1]
-    #print(data_r.shape, data_f.shape)
-
-
-    levels = mlt.define_levels(data_r,5)  #defining color and contour levels
-
-    ncouples2 = data_f.shape[0]*(data_f.shape[0]-1)
-
-    bins = np.linspace(tuple([-1 for i in range(ncouples2)]), tuple([1 for i in range(ncouples2)]),101, axis=1)
-
-    var_r = (np.log(data_r), bins)
-    var_f = (np.log(data_f), bins)
-
-    mlt.plot2D_histo(var_f, var_r, levels, output_dir = 'multivariate/'+list_names[i], add_name='')
-
+    
+        levels = mlt.define_levels(data_r,5)  #defining color and contour levels
+    
+        ncouples2 = data_f.shape[0]*(data_f.shape[0]-1)
+    
+        bins = np.linspace(tuple([-1 for i in range(ncouples2)]), tuple([1 for i in range(ncouples2)]),101, axis=1)
+    
+        var_r = (np.log(data_r), bins)
+        var_f = (np.log(data_f), bins)
+    
+        mlt.plot2D_histo(var_f, var_r, levels, output_dir = 'multivariate/'+list_names[i], add_name='')
+    
 
 Results = np.zeros((Length_list_names, 13))
 for i in range(Length_list_names):
