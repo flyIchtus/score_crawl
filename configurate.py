@@ -83,52 +83,65 @@ def getAndNameDirs(option = 'rigid'):
         parser.add_argument('--lr0', type = str2list, help = 'Set of initial learning rates', default = [0.001,0.005])
         parser.add_argument('--batch_sizes',type = str2list, help = 'Set of batch sizes experimented', default=[8,16,32])
         parser.add_argument('--instance_num', type = str2list, help = 'Instances of experiment to dig in', default = [1,2,3,4])
-        parser.add_argument('--variables', type = str2list, help = 'List of subset of variables to compute metrics on', default =[])
         parser.add_argument('--conditional', type = str2bool, help ='Whether experiment is conditional', default = False)
         parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)        
         parser.add_argument('--fake_prefix', type=str, help = 'prefix for the fake -generated- files', default = '_Fsample_')
         parser.add_argument('--real_prefix', type=str, help='prefix for the real data files', default = '_sample')
-        parser.add_argument('--list_steps', type=str2list, help='prefix for the real data files', default = ['0'])
+        parser.add_argument('--list_steps', type=str2list, help='list of steps to compute metrics on', default = ['0'])
+        parser.add_argument('--variables', type = list, help = 'List of subset of variables to compute metrics on', 
+                        default=["['u','v','t2m']"])#,"['u','v']","['t2m']"])
+        parser.add_argument('--conditional', type = str2bool, help ='Whether experiment is conditional', default = False)
+        parser.add_argument('--ch_multip', type=int, help='channel multiplier', default=2)
+        parser.add_argument('--latent_dim', type=str2list, help='size of the latent vector', default=[512])
+        parser.add_argument("--use_noise", type=str2bool, default=[False], help="prevent noise injection if false")
         
-        multi_config = parser.parse_args()
- 
+        multi_config=parser.parse_args()
+        
         N_samples = multi_config.n_samples
         
+        root_expe_path = multi_config.root_expe_path
+        
+        
+        #  fidgeting about the variables names
+        
+        for i, _ in enumerate(multi_config.variables):
+            multi_config.variables[i] = str2list(multi_config.variables[i])
+            for j, _ in enumerate(multi_config.variables[i]):
+                multi_config.variables[i][j] = multi_config.variables[i][j][1:-1] # remove the "" around the variables names
+        
+        # getting the directories together
+
         names=[]
         short_names=[]
         list_steps=[]
         
-        root_expe_path = multi_config.root_expe_path
-    
         for lr in multi_config.lr0:
             for batch in multi_config.batch_sizes :
                 for instance in multi_config.instance_num:
-                    
-                    names.append(root_expe_path+'Set_'+str(multi_config.expe_set)\
-                                        +'/'+multi_config.glob_name+'_'+str(batch)\
-                                        +'_'+str(lr)+'_'+str(lr)+'/Instance_'+str(instance))
-                    
-                    short_names.append('Instance_{}_Batch_{}_LR_{}'.format(instance, batch,lr))
-                    
-                    #list_steps.append([51000*i for i in range(12)])
-                    
-                    if int(batch)==0:
-                        list_steps.append([0])
-                    
-                    if int(batch)<=64 and int(batch)>0:
-                        list_steps.append([1500*k for k in range(40)]+[59999])
-                        
-                    else:
-                        list_steps.append([1500*k for k in range(22)])
-                        
-        data_dir_names, log_dir_names = [f+'/samples/' for f in names],[f+'/log/' for f in names]
-        
-        multi_config.data_dir_names = data_dir_names
-        multi_config.log_dir_names = log_dir_names
-        multi_config.short_names = short_names
-        multi_config.list_steps = list_steps
-        
-        multi_config.length = len(data_dir_names)
+                    for dim in multi_config.latent_dim:
+                        for vars in multi_config.variables:
+                            for n in multi_config.use_noise:
+                                #print("vars", vars)
+                                name = root_expe_path+'Set_'+str(multi_config.expe_set)\
+                                                    +'/'+multi_config.glob_name+'lat-dim_'+str(dim)+'_bs_'+str(batch)\
+                                                    +'_'+str(lr)+'_'+str(lr)+'_ch-mul_'+str(multi_config.ch_multip)\
+                                                    + '_vars_' + '_'.join(str(var) for var in vars)\
+                                                    +f'_noise_{n}/Instance_'+str(instance)
+                                names.append(name)
+                                
+                                short_names.append('Instance_{}_Batch_{}_LR_{}_LAT_{}'.format(instance, batch,lr, multi_config.latent_dim))
+                                
+                                list_steps.append([int (s) for s in multi_config.list_steps])
+                                
+                            
+            data_dir_names, log_dir_names = [f+'/samples/' for f in names],[f+'/log/' for f in names]
+            
+            multi_config.data_dir_names = data_dir_names
+            multi_config.log_dir_names = log_dir_names
+            multi_config.short_names = short_names
+            multi_config.list_steps = list_steps
+            
+            multi_config.length = len(data_dir_names)
         
     elif option=='flex':
         
@@ -141,7 +154,8 @@ def getAndNameDirs(option = 'rigid'):
         
         parser.add_argument('--root_expe_path', type = str, help = 'Root of dir expe', default = '/scratch/mrmn/brochetc/')
         parser.add_argument('--names', type = str2list, help = 'Experiment sub-dirs', default = [''])
-        parser.add_argument('--variables', type = str2list, help = 'List of subset of variables to compute metrics on', default =[])
+        parser.add_argument('--variables', type = list, help = 'List of subset of variables to compute metrics on', 
+                        default=["['u','v','t2m']"])#,"['u','v']","['t2m']"])
         parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
         parser.add_argument('--fake_prefix', type=str, help = 'prefix for the fake -generated- files', default = '_Fsample_')
         parser.add_argument('--real_prefix', type=str, help='prefix for the real data files', default = '_sample')
@@ -150,10 +164,13 @@ def getAndNameDirs(option = 'rigid'):
         multi_config = parser.parse_args()
  
         N_samples = multi_config.n_samples
-        short_names = []
-        list_steps = []
-        
+
         root_expe_path = multi_config.root_expe_path
+
+        for i, _ in enumerate(multi_config.variables):
+            multi_config.variables[i] = str2list(multi_config.variables[i])
+            for j, _ in enumerate(multi_config.variables[i]):
+                multi_config.variables[i][j] = multi_config.variables[i][j][1:-1] # remove the "" around the variables names
         
         data_dir_names = []
         short_names = []
@@ -197,7 +214,8 @@ def getAndNameDirs(option = 'rigid'):
         
         parser.add_argument('--root_expe_path', type = str, help = 'Root of dir expe', default = '/scratch/mrmn/brochetc/')
         parser.add_argument('--names', type = str2list, help = 'Experiment sub-dirs', default = [''])
-        parser.add_argument('--variables', type = str2list, help = 'List of subset of variables to compute metrics on', default =[])
+        parser.add_argument('--variables', type = list, help = 'List of subset of variables to compute metrics on', 
+                        default=["['u','v','t2m']"])#,"['u','v']","['t2m']"])
         parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
         parser.add_argument('--fake_prefix', type=str, help = 'prefix for the fake -generated- files', default = '_Fsample_')
         parser.add_argument('--real_prefix', type=str, help='prefix for the real data files', default = '_sample')
@@ -207,10 +225,13 @@ def getAndNameDirs(option = 'rigid'):
  
         N_samples = multi_config.n_samples
         
-        short_names = []
-        list_steps = []
-        
         root_expe_path = multi_config.root_expe_path
+        
+        for i, _ in enumerate(multi_config.variables):
+            multi_config.variables[i] = str2list(multi_config.variables[i])
+            for j, _ in enumerate(multi_config.variables[i]):
+                multi_config.variables[i][j] = multi_config.variables[i][j][1:-1] # remove the "" around the variables names
+        
         
         data_dir_names = []
         short_names = []
@@ -234,7 +255,7 @@ def getAndNameDirs(option = 'rigid'):
             if not os.path.exists(logn):
                 os.mkdir(logn)
                 
-        list_steps = [[0] for subdir in multi_config.names]
+        list_steps = [[int(s) for s in multi_config.list_steps] for subdir in multi_config.names]
             
         multi_config.data_dir_names = data_dir_names
         multi_config.log_dir_names = log_dir_names
