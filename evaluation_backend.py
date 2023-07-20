@@ -9,22 +9,16 @@ dataset metric tests
 code snippets
 
 """
-import os
-
 import numpy as np
 import metrics4arome as metrics
 from glob import glob
 import random
+import base_config
+import pandas as pd
+
+real_data_dir = base_config.real_data_dir
 
 
-########### standard parameters #####
-
-num_proc = 8
-var_dict = {'rr': 0, 'u': 1, 'v': 2, 't2m': 3, 'orog': 4} # do not touch unless
-                                                          # you know what u are doing
-data_dir_0 = '/scratch/mrmn/moldovang/IS_1_1.0_0_0_0_0_0_256_done/'
-
-#####################################
 
 def split_dataset(file_list,N_parts):
     """
@@ -40,9 +34,9 @@ def split_dataset(file_list,N_parts):
     
     """
     
-    inds=[i*len(file_list)//N_parts for i in range(N_parts)]+[len(file_list)]
+    inds = [i*len(file_list)//N_parts for i in range(N_parts)]+[len(file_list)]
 
-    to_split=file_list.copy()
+    to_split = file_list.copy()
     random.shuffle(to_split)
     
     return [to_split[inds[i]:inds[i+1]] for i in range(N_parts)]
@@ -73,8 +67,8 @@ def normalize(BigMat, scale, Mean, Max):
     return  res
 
 
-def build_datasets(data_dir, program,step=None, option='real', 
-                   fake_prefix = '_Fsample_', real_prefix = '_sample'):
+def build_datasets(data_dir, program, dataframe, step=None, option='real', 
+                   fake_prefix = '_Fsample_'):
     """
     
     Build file lists to get samples, as specified in the program dictionary
@@ -88,7 +82,7 @@ def build_datasets(data_dir, program,step=None, option='real',
                 
         step : None or int -> if None, normal search among generated samples
                               if int, search among generated samples at the given step
-                              (used in learning dynamics mapping)
+                              (used in training steps mapping)
     
     Returns :
         
@@ -105,26 +99,30 @@ def build_datasets(data_dir, program,step=None, option='real',
         
 
     if option=='fake':
-        globList=glob(data_dir+name+'*')
+        globList = glob(data_dir + name + '*')
         
     else:
-        globList=glob(data_dir + real_prefix + '*')
         
-    res={}
-    
-    
+        print('reading dataframe', dataframe)
+        
+        df = pd.read_csv(data_dir + dataframe)
+        
+        globList = [data_dir + filename + '.npy' for filename in df['Name']]
+  
+    res = {}
+
     for key, value in program.items():
         if value[0]==2:
 
-            fileList=random.sample(globList,2*value[1])
+            fileList = random.sample(globList,2*value[1])
             
-            res[key]=split_dataset(fileList,2)
+            res[key] = split_dataset(fileList,2)
                         
         if value[0]==1:
             
-            fileList=random.sample(globList,value[1])
+            fileList = random.sample(globList,value[1])
             
-            res[key]=fileList
+            res[key] = fileList
 
     return res
 
@@ -199,11 +197,11 @@ def load_batch(file_list,number,\
             batch = Shape[0]
                         
             if batch > number : # one file is enough
-                
                 indices = random.sample(range(batch), number)
                 k = random.randint(0,len(file_list)-1)
                 
-                if len(var_indices_fake)==1 :                    
+                if len(var_indices_fake)==1 :  
+                    
                     Mat = np.load(file_list[k])[indices, ind_var:ind_var+1,:,:]
                 else : 
                     Mat = np.load(file_list[k])[indices, var_indices_fake,:,:]
@@ -211,10 +209,10 @@ def load_batch(file_list,number,\
             
             else : #select multiple files and fill the number
             
-                Mat=np.zeros((number, len(var_indices_fake), Shape[2], Shape[3]), \
+                Mat = np.zeros((number, len(var_indices_fake), Shape[2], Shape[3]), \
                                                          dtype=np.float32)
                 
-                list_inds=random.sample(file_list, number//batch)
+                list_inds = random.sample(file_list, number//batch + 1 )
                 
                 for i in range(number//batch) :
                     
@@ -229,13 +227,16 @@ def load_batch(file_list,number,\
                 if number%batch !=0 :
                     
                     remain_inds = random.sample(range(batch),number%batch)
-                    
+
                     if len(var_indices_fake)==1 :
-                        Mat[i*batch :] =\
-                    np.load(list_inds[i+1])[remain_inds, ind_var:ind_var+1,:,:].astype(np.float32)
+                        
+                        Mat[(i +1 )*batch :] =\
+                    np.load(list_inds[i])[remain_inds, ind_var:ind_var+1,:,:].astype(np.float32)
                     else :
-                        Mat[i*batch :] =\
-                    np.load(list_inds[i+1])[remain_inds, var_indices_fake,:,:].astype(np.float32)
+                        
+                        interm  = np.load(list_inds[i])[remain_inds]
+                        
+                        Mat[(i +1 )*batch :] = interm[:, var_indices_fake,:,:].astype(np.float32)
                 
 
     elif option=='real':
@@ -269,7 +270,7 @@ def load_batch(file_list,number,\
 
 
 
-def eval_distance_metrics(data, option = 'from_names', data_dir = data_dir_0):
+def eval_distance_metrics(data, option = 'from_names', data_dir = real_data_dir):
     
     """
     
@@ -315,12 +316,12 @@ def eval_distance_metrics(data, option = 'from_names', data_dir = data_dir_0):
         results : np.array containing the calculation of the metric
         
     """
-    metrics_list, dataset, n_samples_0, n_samples_1, VI, VI_f, CI, index, real_dir = data
+    metrics_list, dataset, n_samples_0, n_samples_1, VI, VI_f, CI, index = data
     
     ## loading and normalizing data
     
-    Means=np.load(data_dir_0+'mean_with_orog.npy')[VI].reshape(1,len(VI),1,1)
-    Maxs=np.load(data_dir_0+'max_with_orog.npy')[VI].reshape(1,len(VI),1,1)
+    Means = np.load(real_data_dir + 'mean_with_orog.npy')[VI].reshape(1,len(VI),1,1)
+    Maxs = np.load(real_data_dir + 'max_with_orog.npy')[VI].reshape(1,len(VI),1,1)
     
     print('Loading data') 
     if list(dataset.keys())==['real','fake']:
@@ -416,7 +417,7 @@ def global_dataset_eval(data, option='from_names'):
         
     """
     
-    metrics_list, dataset, n_samples, VI, VI_f, CI, index, data_option, real_dir = data
+    metrics_list, dataset, n_samples, VI, VI_f, CI, index, data_option = data
     
     print('evaluating backend',index)
     #print(real_dir)
@@ -442,8 +443,8 @@ def global_dataset_eval(data, option='from_names'):
     
     if data_option=='real':
         print('normalizing')    
-        Means=np.load(real_dir+'mean_with_orog.npy')[VI].reshape(1,len(VI),1,1)
-        Maxs=np.load(real_dir+'max_with_orog.npy')[VI].reshape(1,len(VI),1,1)
+        Means = np.load(real_data_dir + 'mean_with_orog.npy')[VI].reshape(1,len(VI),1,1)
+        Maxs = np.load(real_data_dir + 'max_with_orog.npy')[VI].reshape(1,len(VI),1,1)
     
         rdata=normalize(rdata,0.95,Means, Maxs)
     

@@ -21,14 +21,14 @@ from collections import defaultdict
 from configurate import Experiment
 import evaluation_backend as backend
 import metrics4arome as metrics
-
+import base_config
 
 
 ########### standard parameters #####
 
-num_proc = backend.num_proc
-var_dict = backend.var_dict 
-data_dir = backend.data_dir_0
+num_proc = base_config.num_proc
+var_dict = base_config.var_dict 
+real_data_dir = base_config.real_data_dir
 
 #####################################
 
@@ -107,7 +107,7 @@ class EnsembleMetricsCalculator(Experiment) :
         for metric in metrics_list :
             assert hasattr(metrics, metric)
             
-        ########################
+        ########## choice of functions depending on nature of tests #########
         
         self.program = program
             
@@ -115,7 +115,7 @@ class EnsembleMetricsCalculator(Experiment) :
             
             if standalone :
                 
-                name='_standalone_metrics_'
+                name = '_standalone_metrics_'
                 
                 if real :
                     
@@ -127,7 +127,7 @@ class EnsembleMetricsCalculator(Experiment) :
                 
             else :
                 
-                name='_distance_metrics_'
+                name = '_distance_metrics_'
                 
                 if real :
                     func = self.parallelEstimation_realVreal
@@ -135,7 +135,7 @@ class EnsembleMetricsCalculator(Experiment) :
                     func = self.parallelEstimation_realVSfake
         else :
             
-            name='_distance_metrics_'
+            name = '_distance_metrics_'
             
             if real :
                 func = self.sequentialEstimation_realVSreal
@@ -143,7 +143,7 @@ class EnsembleMetricsCalculator(Experiment) :
             else :
                 func = self.sequentialEstimation_realVSfake
                 
-        results=func(metrics_list)
+        results = func(metrics_list)
             
         N_samples_set = [self.program[i][1] for i in range(len(program))]
             
@@ -153,7 +153,7 @@ class EnsembleMetricsCalculator(Experiment) :
             
             temp_log_dir = self.log_dir
             
-            self.log_dir = backend.data_dir
+            self.log_dir = real_data_dir
         
         dumpfile = self.log_dir + self.add_name+name + str(N_samples_name)+'.p'
         
@@ -198,8 +198,7 @@ class EnsembleMetricsCalculator(Experiment) :
             for step in self.steps:
                 
                 #getting first (and only) item of the random real dataset program
-                dataset_r = backend.build_datasets(data_dir, self.program, 
-                                                   real_prefix = self.real_prefix,
+                dataset_r = backend.build_datasets(real_data_dir, self.program, self.real_dataset_labels,
                                                    fake_prefix = self.fake_prefix)[i0]
                 
                 N_samples = self.program[i0][1]
@@ -208,9 +207,9 @@ class EnsembleMetricsCalculator(Experiment) :
                 files = glob(self.data_dir_f + self.fake_prefix + str(step)+'_*.npy')
                 
               
-                data_list.append((metrics_list, {'real':dataset_r,'fake': files},\
+                data_list.append((metrics_list, {'real': dataset_r,'fake': files},\
                                   N_samples, N_samples,\
-                                  self.VI, self.VI_f, self.CI, step, data_dir))
+                                  self.VI, self.VI_f, self.CI, step))
             
             with Pool(num_proc) as p :
                 res = p.map(backend.eval_distance_metrics, data_list)
@@ -238,7 +237,7 @@ class EnsembleMetricsCalculator(Experiment) :
                                         for k,v in d_res.items()}
             RES[i0] = res
             
-        if i0==1 :
+        if i0==0 :
             return res
         else :
             return RES
@@ -273,8 +272,7 @@ class EnsembleMetricsCalculator(Experiment) :
             for step in self.steps:
                 
                 #getting first (and only) item of the random real dataset program
-                dataset_r = backend.build_datasets(data_dir, self.program, 
-                                                   real_prefix = self.real_prefix,
+                dataset_r = backend.build_datasets(real_data_dir, self.program, self.real_dataset_labels,
                                                    fake_prefix = self.fake_prefix)[i0]
                 N_samples=self.program[i0][1]
                 
@@ -284,7 +282,7 @@ class EnsembleMetricsCalculator(Experiment) :
               
                 data = (metrics_list, {'real':dataset_r,'fake': files},\
                       N_samples, N_samples,
-                      self.VI, self.VI_f, self.CI, step, data_dir)
+                      self.VI, self.VI_f, self.CI, step)
        
                 res.append(backend.eval_distance_metrics(data))
       
@@ -302,7 +300,7 @@ class EnsembleMetricsCalculator(Experiment) :
                                         for k,v in d_res.items()}
         
             RES[i0] = res
-        if i0==1 :
+        if i0==0 :
             return res
         else :
             return RES
@@ -332,8 +330,7 @@ class EnsembleMetricsCalculator(Experiment) :
         
         """
                 
-        datasets = backend.build_datasets(data_dir, self.program,
-                                                   real_prefix = self.real_prefix,
+        datasets = backend.build_datasets(real_data_dir, self.program, self.real_dataset_labels,
                                                    fake_prefix = self.fake_prefix)
         data_list = []         
     
@@ -346,7 +343,7 @@ class EnsembleMetricsCalculator(Experiment) :
             data_list.append((metric, 
                               {'real0':datasets[i][0],'real1': datasets[i][1]},
                               N_samples, N_samples,
-                              self.VI, self.VI, self.CI,i, data_dir))
+                              self.VI, self.VI, self.CI,i))
         
         with Pool(num_proc) as p :
             res = p.map(backend.eval_distance_metrics, data_list)
@@ -395,19 +392,19 @@ class EnsembleMetricsCalculator(Experiment) :
             
         #getting first (and only) item of the random real dataset program
         
-        datasets = backend.build_datasets(data_dir, self.program,
-                                                   real_prefix = self.real_prefix,
+        datasets = backend.build_datasets(real_data_dir, self.program,self.real_dataset_labels,
                                                    fake_prefix = self.fake_prefix)
             
         for i in range(len(datasets)):
             
             N_samples = self.program[i][1]
           
-            data=(metric, {'real0':datasets[i][0],'real1': datasets[i][1]},
+            data = (metric, {'real0':datasets[i][0],'real1': datasets[i][1]},
                            N_samples, N_samples,
-                           self.VI, self.VI, self.CI, i, data_dir)
+                           self.VI, self.VI, self.CI, i)
         
             if i==0: res = [backend.eval_distance_metrics(data)]
+            
             else :  
                 res.append(backend.eval_distance_metrics(data))
         
@@ -454,12 +451,11 @@ class EnsembleMetricsCalculator(Experiment) :
         if option=='real':
             
             self.steps =[0]
-            dataset_r = backend.build_datasets(data_dir, self.program,  
-                                                   real_prefix = self.real_prefix,
+            dataset_r = backend.build_datasets(real_data_dir, self.program, self.real_dataset_labels,
                                                    fake_prefix = self.fake_prefix) 
             
             data_list = [(metrics_list, dataset_r, self.program[i][1], 
-                          self.VI, self.VI, self.CI, i, option, data_dir) \
+                          self.VI, self.VI, self.CI, i, option) \
                         for i, dataset in enumerate(dataset_r)]
             
             with Pool(num_proc) as p :
@@ -500,7 +496,7 @@ class EnsembleMetricsCalculator(Experiment) :
                         files = glob(self.data_dir_f + self.fake_prefix + str(step)+'_*.npy')
                         
                         data_list.append((metrics_list, files, N_samples, 
-                                          self.VI, self.VI_f, self.CI, step, option, data_dir))
+                                          self.VI, self.VI_f, self.CI, step, option))
                 with Pool(num_proc) as p :
                 
                     res = p.map(backend.global_dataset_eval, data_list)
@@ -524,7 +520,7 @@ class EnsembleMetricsCalculator(Experiment) :
                 
                 RES[i0] = res
                 
-            if i0==1 :
+            if i0==0 :
                 return res
             return RES
     
