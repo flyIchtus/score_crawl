@@ -33,7 +33,7 @@ def str2list(li):
         raise ValueError("li argument must be a string or a list, not '{}'".format(type(li)))
         
 def retrieve_domain_parameters(path, instance_num):
-    
+    print(path)
     with open(path+'ReadMe_'+str(instance_num)+'.txt', 'r') as f :
         print('opening ReadMe')
         li=f.readlines()
@@ -145,7 +145,7 @@ def getAndNameDirs(option = 'rigid'):
         parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
         parser.add_argument('--fake_prefix', type=str, help = 'prefix for the fake -generated- files', default = '_Fsample_')
         parser.add_argument('--real_prefix', type=str, help='prefix for the real data files', default = '_sample')
-        parser.add_argument('--list_steps', type=str2list, help='prefix for the real data files', default = ['0'])
+        parser.add_argument('--list_steps', type=str2list, help='list of training steps to compute metrics on', default = ['0'])
 
         multi_config = parser.parse_args()
  
@@ -201,7 +201,7 @@ def getAndNameDirs(option = 'rigid'):
         parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
         parser.add_argument('--fake_prefix', type=str, help = 'prefix for the fake -generated- files', default = '_Fsample_')
         parser.add_argument('--real_prefix', type=str, help='prefix for the real data files', default = '_sample')
-        parser.add_argument('--list_steps', type=str2list, help='prefix for the real data files', default = ['0'])
+        parser.add_argument('--list_steps', type=str2list, help='list of training steps to compute metrics on', default = ['0'])
 
         multi_config = parser.parse_args()
  
@@ -362,6 +362,7 @@ class Experiment():
         
         ###### variable indices selection : unchanged if subset is [], else selected
         
+        print('retrieving')
         indices = retrieve_domain_parameters(self.expe_dir, self.instance_num)
         
         self.CI, self.var_names = indices
