@@ -361,12 +361,13 @@ class Experiment():
         self.fake_prefix = expe_config.fake_prefix
         
         ###### variable indices selection : unchanged if subset is [], else selected
-        
-        print('retrieving')
+
         indices = retrieve_domain_parameters(self.expe_dir, self.instance_num)
         
         self.CI, self.var_names = indices
-        
+        print("Crop indices: ", self.CI)
+
+        self.dom_size = np.abs(self.CI[1]-self.CI[0])
         ########### Subset selection #######
         
         var_dict_fake = { v : i for i, v in enumerate(self.var_names)} # assuming variables are ordered !
@@ -383,9 +384,6 @@ class Experiment():
         ##### final setting of variable indices
             
         self.VI = [var_dict[v] for v in expe_config.variables]
-        
-        
-        
         self.var_names = expe_config.variables
         
         print('Indices of selected variables in samples (real/fake) :',
