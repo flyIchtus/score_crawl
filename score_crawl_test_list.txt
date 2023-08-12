@@ -1,0 +1,59 @@
+Liste des tests :
+
+
+u,v,t multiple samples
+u,v,t multiple_configs
+u,v,t long program
+u,v  multiple samples
+t multiple samples
+
+
+mean_pert z500 multiple samples
+mean_pert multiple samples
+mean_pert multiple_configs
+mean_pert long program
+
+
+parallel, sequential
+u,v,t real v real
+
+
+u,v,t multiple dataframes/csv
+u,v,t changing base config
+u,v,t changing resolution
+
+
+APRES tous ces tests : merge dataframes -> dev
+
+Questions à poser :
+@cyril pourquoi def: .... plutôt que lambda ou functools.partial
+@louis pourquoi # important to put parallel=False dans le metric_tests_exec2.py ?
+
+
+-----
+
+Ajouter fichier de config plutôt que longue liste d'arguments ?
+
+-----
+synchroniser metric4arome score_crawl vs styleGANPNRIA (SWD_API2)
+
+-----
+
+modifier little_refact v PNRIA : 
+ev_backend v
+ev_frontend v
+configurate v
+metric_tests_exec
+
+
+modifier little_refact2.0 v dataframes :
+
+ev_backend
+ev_frontend
+configurate
+metric_tests_exec
+base_config
+
+----------------
+synchroniser priam-sidev (force-pull)
+
