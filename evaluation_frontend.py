@@ -146,6 +146,7 @@ class EnsembleMetricsCalculator(Experiment):
         N_samples_set = [self.program[i][1] for i in range(len(program))]
 
         N_samples_name = '_'.join([str(n) for n in N_samples_set])
+
         if not real:
             N_samples_name = 'step_' + '_'.join([str(s) for s in self.steps]) + '_' + N_samples_name
         else:
@@ -285,7 +286,7 @@ class EnsembleMetricsCalculator(Experiment):
                         N_samples, N_samples,
                         self.VI, self.VI_f, self.CI, step, data_dir)
 
-                res.append(backend.eval_distance_metrics(data))
+                res.append(partial(backend.eval_distance_metrics(data), mean_pert=mean_pert))
 
             # some cuisine to produce a rightly formatted dictionary
 
@@ -498,7 +499,7 @@ class EnsembleMetricsCalculator(Experiment):
                                           self.VI, self.VI_f, self.CI, step, option, data_dir))
 
                 with Pool(num_proc) as p:
-                    res = p.map(backend.global_dataset_eval, data_list)
+                    res = p.map(partial(backend.global_dataset_eval, mean_pert=mean_pert), data_list)
 
                 ind_list = []
                 d_res = defaultdict(list)
@@ -519,6 +520,6 @@ class EnsembleMetricsCalculator(Experiment):
 
                 RES[i0] = res
 
-            if i0 == 1:
+            if i0 == 0:
                 return res
             return RES

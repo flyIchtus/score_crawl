@@ -10,6 +10,7 @@ metrics computation configuration tools
 """
 import argparse
 from evaluation_backend import var_dict
+import numpy as np
 import os
 
 
@@ -93,8 +94,6 @@ def getAndNameDirs(option='rigid'):
                             help='Set of batch sizes experimented', default=[8, 16, 32])
         parser.add_argument('--instance_num', type=str2list,
                             help='Instances of experiment to dig in', default=[1, 2, 3, 4])
-        parser.add_argument('--variables', type=str2list,
-                            help='List of subset of variables to compute metrics on', default=[])
         parser.add_argument('--conditional', type=str2bool,
                             help='Whether experiment is conditional', default=False)
         parser.add_argument('--n_samples', type=int,
@@ -105,6 +104,19 @@ def getAndNameDirs(option='rigid'):
                             help='prefix for the real data files', default='_sample')
         parser.add_argument('--list_steps', type=str2list,
                             help='prefix for the real data files', default=['0'])
+
+        parser.add_argument('--ch_multip', type=int, help='channel multiplier', default=2)
+
+     
+        parser.add_argument('--latent_dim', type=str2list, default=[512], help='size of the latent vector')
+        parser.add_argument("--dom_sizes", type=str2list, default = [256], help="size of domain")
+        
+        parser.add_argument('--variables', type = str2list, nargs="+", default=['u','v','t2m','z500','t850','tpw850'],
+            help = 'List of subset of variables to compute metrics on') # provide as: --variables ['u','v'] ['t2m'] for instance (list after list)
+        
+        parser.add_argument("--use_noise", type=str2bool, default=[True], help="prevent noise injection if false")
+        parser.add_argument("--mean_pert", type=str2bool, default = False, help="dataset with mean/pert separated")
+        
 
         multi_config = parser.parse_args()
 
@@ -119,24 +131,22 @@ def getAndNameDirs(option='rigid'):
         for lr in multi_config.lr0:
             for batch in multi_config.batch_sizes:
                 for instance in multi_config.instance_num:
+                    for dim in multi_config.latent_dim:
+                        for vars in multi_config.variables:
+                            for n in multi_config.use_noise:
+                                for dom_size in multi_config.dom_sizes:
 
-                    names.append(root_expe_path+'Set_'+str(multi_config.expe_set)
-                                 + '/'+multi_config.glob_name+'_'+str(batch)
-                                 + '_'+str(lr)+'_'+str(lr)+'/Instance_'+str(instance))
+                                    name = root_expe_path\
+                                            +multi_config.glob_name+f'dom_{dom_size}_lat-dim_'+str(dim)+'_bs_'+str(batch)\
+                                            +'_'+str(lr)+'_'+str(lr)+'_ch-mul_'+str(multi_config.ch_multip)\
+                                            + '_vars_' + '_'.join(str(var) for var in vars)\
+                                            +f'_noise_{n}'\
+                                            +("_mean_pert" if multi_config.mean_pert else "")\
+                                            +f'/Instance_'+str(instance)
+                                    names.append(name)
 
-                    short_names.append(
-                        'Instance_{}_Batch_{}_LR_{}'.format(instance, batch, lr))
+                                    short_names.append('Instance_{}_Batch_{}_LR_{}_LAT_{}'.format(instance, batch,lr, multi_config.latent_dim))
 
-                    # list_steps.append([51000*i for i in range(12)])
-
-                    if int(batch) == 0:
-                        list_steps.append([0])
-
-                    if int(batch) <= 64 and int(batch) > 0:
-                        list_steps.append([1500*k for k in range(40)]+[59999])
-
-                    else:
-                        list_steps.append([1500*k for k in range(22)])
 
         data_dir_names, log_dir_names = [
             f+'/samples/' for f in names], [f+'/log/' for f in names]
@@ -300,7 +310,6 @@ def select_Config(multi_config, index, option='rigid'):
     Returns :
 
         config : argparse.Namespace object
-
     """
 
     if option == 'rigid':
@@ -322,8 +331,8 @@ def select_Config(multi_config, index, option='rigid'):
         config.batch = multi_config.batch_sizes[((index//insts) % batches)]
         config.instance_num = multi_config.instance_num[instance_index]
 
-        # assuming same subset of variables for each experiment, by construction
-        config.variables = multi_config.variables
+        config.variables = multi_config.variables[index] if len(multi_config.variables) > 1 else \
+                        multi_config.variables[0] 
 
         config.real_prefix = multi_config.real_prefix
         config.fake_prefix = multi_config.fake_prefix
@@ -342,8 +351,8 @@ def select_Config(multi_config, index, option='rigid'):
         config.batch = 0
         config.instance_num = 1
 
-        # assuming same subset of variables for each experiment, by construction
-        config.variables = multi_config.variables
+        config.variables = multi_config.variables[index] if len(multi_config.variables) > 1 else \
+                        multi_config.variables[0] 
         config.real_prefix = multi_config.real_prefix
         config.fake_prefix = multi_config.fake_prefix
 
@@ -361,8 +370,8 @@ def select_Config(multi_config, index, option='rigid'):
         config.batch = 0
         config.instance_num = 1
 
-        # assuming same subset of variables for each experiment, by construction
-        config.variables = multi_config.variables
+        config.variables = multi_config.variables[index] if len(multi_config.variables) > 1 else \
+                        multi_config.variables[0] 
 
         config.real_prefix = multi_config.real_prefix
         config.fake_prefix = multi_config.fake_prefix
@@ -395,6 +404,8 @@ class Experiment():
 
         self.instance_num = expe_config.instance_num
 
+        self.mean_pert = expe_config.mean_pert
+        
         self.real_prefix = expe_config.real_prefix
 
         self.fake_prefix = expe_config.fake_prefix
@@ -405,6 +416,10 @@ class Experiment():
 
         self.CI, self.var_names = indices
 
+        print("Crop indices: ", self.CI)
+
+        self.dom_size = np.abs(self.CI[1]-self.CI[0])
+        
         ########### Subset selection #######
 
         # assuming variables are ordered !

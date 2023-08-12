@@ -26,8 +26,8 @@ var_dict = {'rr' : 0, 'u' : 1, 'v' : 2, 't2m' : 3 , 'orog' : 4, 'z500': 5, 't850
 data_dir_0 = '/scratch/mrmn/poulainauzeaul/Exp_StyleGAN/IS_1_1.0_0_0_0_0_0_256_done_with_8_var/'
 global_data_dir = "/scratch/mrmn/poulainauzeaul/Exp_StyleGAN/"
 print(os.path.exists(data_dir_0))
-#####################################
 
+#####################################
 
 def split_dataset(file_list, N_parts):
     """
@@ -74,6 +74,88 @@ def normalize(BigMat, scale, Mean, Max):
 
     return res
 
+##################################
+
+def mean_pert_rescale(filename, 
+                        data_dir_mean_pert, data_dir_physical, 
+                        var_indices_real, var_indices_fake, 
+                        indices = None, case = 'isolated_single'):
+
+    """ intricate rescaling to deal with perturbations and mean splitted generation
+    Set loaded data in a normalized [-1,1] interval
+
+    list_inds :  filename list, used to load splitted data files
+    Mat : receiving np.ndarray, to store final results
+
+    data_dir_mean_pert : str, where to fetch splitted normalization constants
+    data_dir_physical :  str, where to fetch physical constants
+    var_indices_real : indices of the real variables to be fetched in real norm constants
+    var_indices_fake : indices of the fake variables to be fetched in fake data samples
+    case : str, discusses the formatting options to handle indices correctly
+
+    """
+	var_idxs = [var_id for var_id in var_indices_real] +\
+		                               [var_id+8 for var_id in var_indices_real]
+
+	Means_denorm = np.load(data_dir_mean_pert + "mean_mean_pert.npy")[var_idxs].reshape(2,1,1)
+	Maxs_denorm = np.load(data_dir_mean_pert + "max_mean_pert.npy")[var_idxs].reshape(2,1,1)
+	Stds_denorm = (1.0/0.95) * Maxs_denorm
+
+	Means_renorm = np.load(data_dir_physical + \
+		"mean_with_8_var.npy")[[var_id for var_id in var_indices_real]].reshape(len(var_indices_real),1,1)
+	Maxs_renorm = np.load(data_dir_physical + \
+		"max_with_8_var.npy")[[var_id for var_id in var_indices_real]].reshape(len(var_indices_real),1,1)
+		
+	Stds_renorm = (1.0/0.95) * Maxs_renorm
+
+    if case=='isolated_single': # files are not batched, single variable
+
+        ind_vars = [ind_var, ind_var+1]
+
+        tmp = np.load(list_inds[i])[ind_vars,:,:].astype(np.float32) * Stds_denorm + Means_denorm
+        # Then sum mean and perturbations
+        tmp2 = np.zeros((len(var_indices_fake), *tmp.shape[-2:]))
+        for j in range(tmp2.shape[0]):
+            tmp2[j,:,:] = tmp[j,:,:] + tmp[j+len(var_indices_fake),:,:]
+
+    elif case=='isolated_multiple':  # files are not batched, multiple variables
+
+        # First denormalize data
+        tmp = np.load(list_inds[i])[var_idxs,:,:].astype(np.float32) * Stds_denorm + Means_denorm
+        # Then sum mean and perturbations
+        tmp2 = np.zeros((len(var_indices_fake), *tmp.shape[-2:]))
+        for j in range(tmp2.shape[0]):
+            tmp2[j,:,:] = tmp[j,:,:] + tmp[j+len(var_indices_fake),:,:]
+
+    elif case=='batched_single': # here indices is needed
+
+        ind_vars = [ind_var, ind_var+1]
+        tmp = np.load(file_list[k])[indices, ind_vars,:,:].astype(np.float32) * Stds_denorm + Means_denorm
+        # Then sum mean and perturbations
+        tmp2 = np.zeros((tmp.shape[0], len(var_indices_fake), *tmp.shape[-2:]))
+        for j in range(tmp2.shape[1]):
+            tmp2[:,j,:,:] = tmp[:,j,:,:] + tmp[:,j+len(var_indices_fake),:,:]
+
+    elif case=='batched_multiple': # here indices is needed
+
+        ind_vars = var_indices_fake + [v_idx_f+len(var_indices_fake) for v_idx_f in var_indices_fake]
+        # First denormalize data
+        tmp = np.load(file_list[k])[indices, ind_vars,:,:].astype(np.float32) * Stds_denorm + Means_denorm
+        # Then sum mean and perturbations
+        tmp2 = np.zeros((tmp.shape[0], len(var_indices_fake), *tmp.shape[-2:]))
+        for j in range(tmp2.shape[1]):
+            tmp2[:,j,:,:] = tmp[:,j,:,:] + tmp[:,j+len(var_indices_fake),:,:]
+
+
+    else:
+        raise ValueError('Unknown case {}'.format(case))
+
+	# Renormalize 
+	mat = (tmp2-Means_renorm)/Stds_renorm
+	
+	return mat
+
+##################################
 
 def build_datasets(data_dir, program, step=None, option='real',
                    fake_prefix='_Fsample_', real_prefix='_sample'):
@@ -132,11 +214,10 @@ def build_datasets(data_dir, program, step=None, option='real',
 def load_batch(file_list, number,
                var_indices_real=None, var_indices_fake=None,
                crop_indices=None,
-               option='real',
+               option='real', mean_pert=False,
                output_dir=None, output_id=None, save=False):
     """
     gather a fixed number of random samples present in file_list into a single big matrix
-
 
     Inputs :
 
@@ -151,7 +232,9 @@ def load_batch(file_list, number,
         Shape : tuple, the target shape of every sample
 
         option : str, different treatment if the data is GAN generated or PEARO
-
+        
+        mean_pert : if True, we will add the mean and pert that were recorded separetely before computing any score
+        
         output_dir : str of the directory to save datasets ---> NotImplemented
 
         output_id : name of the dataset to be saved ---> NotImplemented
@@ -163,6 +246,8 @@ def load_batch(file_list, number,
         Mat : numpy array, shape  number x C x Shape[1] x Shape[2] matrix
 
     """
+
+    print('length of file list', len(file_list))
 
     if option == 'fake':
         # in this case samples can either be in isolated files or grouped in batches
@@ -186,11 +271,24 @@ def load_batch(file_list, number,
             for i in range(number):
 
                 if len(var_indices_fake) == 1:
-                    Mat[i] = np.load(list_inds[i])[
-                        ind_var:ind_var+1, :, :].astype(np.float32)
+                    if not mean_pert:
+                        Mat[i] = np.load(list_inds[i])[
+                            ind_var:ind_var+1, :, :].astype(np.float32)
+                    else:
+                        Mat[i] = mean_pert_rescale(list_inds[i], 
+                        global_data_dir + "IS_1_1.0_0_0_0_0_0_256_mean_pert/",
+                        global_data_dir + "IS_1_1.0_0_0_0_0_0_256_done_with_8_var/",
+                        var_indices_real, var_indices_fake, case='isolated_single') 
+                 
                 else:
-                    Mat[i] = np.load(list_inds[i])[
+                    if not mean_pert:
+                        Mat[i] = np.load(list_inds[i])[
                         var_indices_fake, :, :].astype(np.float32)
+                    else:
+                        Mat[i] = mean_pert_rescale(list_inds[i],
+                        global_data_dir + "IS_1_1.0_0_0_0_0_0_256_mean_pert/",
+                        global_data_dir + "IS_1_1.0_0_0_0_0_0_256_done_with_8_var/",
+                        var_indices_real, var_indices_fake, case='isolated_mutiple') 
 
         # case : batching -> select the right number of files to get enough samples
         elif len(Shape) == 4:
@@ -203,13 +301,26 @@ def load_batch(file_list, number,
                 k = random.randint(0, len(file_list)-1)
 
                 if len(var_indices_fake) == 1:
-                    Mat = np.load(file_list[k])[
-                        indices, ind_var:ind_var+1, :, :]
+                    if not mean_pert:
+                        Mat = np.load(file_list[k])[
+                            indices, ind_var:ind_var+1, :, :]
+                    else:
+                        Mat = mean_pert_rescale(file_list[k],
+                        global_data_dir + "IS_1_1.0_0_0_0_0_0_256_mean_pert/",
+                        global_data_dir + "IS_1_1.0_0_0_0_0_0_256_done_with_8_var/",
+                        var_indices_real,var_indices_fake, indices=indices, case='batched_single')
                 else:
-                    Mat = np.load(file_list[k])[
-                        indices, var_indices_fake, :, :]
+                    if not mean_pert :
+                        Mat = np.load(file_list[k])[
+                            indices, var_indices_fake, :, :]
+                    else:
+                        Mat = mean_pert_rescale(file_list[k],
+                            global_data_dir + "IS_1_1.0_0_0_0_0_0_256_mean_pert/",
+                            global_data_dir + "IS_1_1.0_0_0_0_0_0_256_done_with_8_var/",
+                            var_indices_real, var_indices_fake, indices=indices, case='batched_multiple')
 
-            else:  # select multiple files and fill the number
+                
+            else:  # select multiple files and fill the number of samples using these files
 
                 Mat = np.zeros((number, len(var_indices_fake), Shape[2], Shape[3]),
                                dtype=np.float32)
@@ -219,27 +330,53 @@ def load_batch(file_list, number,
                 for i in range(number//batch):
 
                     if len(var_indices_fake) == 1:
-                        Mat[i*batch: (i+1)*batch] =\
-                            np.load(list_inds[i]).astype(np.float32)[
-                            :, ind_var:ind_var+1, :, :]
+                        if not mean_pert:
+                            Mat[i*batch: (i+1)*batch] =\
+                                np.load(list_inds[i]).astype(np.float32)[
+                                :, ind_var:ind_var+1, :, :]
+                        else:
+                            Mat[i*batch: (i+1)*batch] = mean_pert_rescale(list_inds[i], 
+                                global_data_dir + "IS_1_1.0_0_0_0_0_0_256_mean_pert/",
+                                global_data_dir + "IS_1_1.0_0_0_0_0_0_256_done_with_8_var/",
+                                var_indices_real, var_indices_fake, case='batched_single')
 
                     else:
-                        Mat[i*batch: (i+1)*batch] =\
-                            np.load(list_inds[i]).astype(np.float32)[
-                            :, var_indices_fake, :, :]
+                        if not mean_pert:
+                            Mat[i*batch: (i+1)*batch] =\
+                                np.load(list_inds[i]).astype(np.float32)[
+                                :, var_indices_fake, :, :]
+                        else:
+                            Mat[i*batch: (i+1)*batch] = mean_pert_rescale(list_inds[i], 
+                                global_data_dir + "IS_1_1.0_0_0_0_0_0_256_mean_pert/",
+                                global_data_dir + "IS_1_1.0_0_0_0_0_0_256_done_with_8_var/",
+                                var_indices_real, var_indices_fake, case='batched_multiple')
+
 
                 if number % batch != 0:
 
                     remain_inds = random.sample(range(batch), number % batch)
 
                     if len(var_indices_fake) == 1:
-                        Mat[i*batch:] =\
-                            np.load(
-                                list_inds[i+1])[remain_inds, ind_var:ind_var+1, :, :].astype(np.float32)
+                        if not mean_pert:
+                            Mat[i*batch:] =\
+                                np.load(
+                                    list_inds[i+1])[remain_inds, ind_var:ind_var+1, :, :].astype(np.float32)
+                        else:
+                            Mat[i*batch:] = mean_pert_rescale(list_inds[i+1], 
+                            global_data_dir + "IS_1_1.0_0_0_0_0_0_256_mean_pert/",
+                            global_data_dir + "IS_1_1.0_0_0_0_0_0_256_done_with_8_var/",
+                            var_indices_real, var_indices_fake, case='batched_single')
+
                     else:
-                        Mat[i*batch:] =\
-                            np.load(
-                                list_inds[i+1])[remain_inds, var_indices_fake, :, :].astype(np.float32)
+                        if not mean_pert:
+                            Mat[i*batch:] =\
+                                np.load(
+                                    list_inds[i+1])[remain_inds, var_indices_fake, :, :].astype(np.float32)
+                        else:
+                            Mat[i*batch:] = mean_pert_rescale(list_inds[i+1], 
+                            global_data_dir + "IS_1_1.0_0_0_0_0_0_256_mean_pert/",
+                            global_data_dir + "IS_1_1.0_0_0_0_0_0_256_done_with_8_var/",
+                            var_indices_real, var_indices_fake, case='batched_multiple')
 
     elif option == 'real':
 
@@ -276,7 +413,9 @@ def load_batch(file_list, number,
     return Mat
 
 
-def eval_distance_metrics(data, option='from_names', data_dir=data_dir_0):
+def eval_distance_metrics(data, option = 'from_names', mean_pert=False,
+                    mean_file='mean_with_8_var.npy',
+                    max_file='max_with_8_var.npy'):
     """
 
     this function should test distance metrics for datasets=[(filelist1, filelist2), ...]
@@ -334,11 +473,10 @@ def eval_distance_metrics(data, option='from_names', data_dir=data_dir_0):
     if list(dataset.keys()) == ['real', 'fake']:
 
         if option == 'from_names':
-
             assert (type(dataset['fake']) == list)
 
             fake_data = load_batch(
-                dataset['fake'], n_samples_1, var_indices_fake=VI_f, option='fake')
+                dataset['fake'], n_samples_1, var_indices_fake=VI_f, option='fake', mean_pert=mean_pert)
 
             print('fake data loaded')
         if option == 'from_matrix':
@@ -390,8 +528,9 @@ def eval_distance_metrics(data, option='from_names', data_dir=data_dir_0):
 
     return results, index
 
-
-def global_dataset_eval(data, option='from_names'):
+def global_dataset_eval(data, option='from_names',
+                    mean_file='mean_with_8_var.npy',
+                    max_file='max_with_8_var.npy', mean_pert=False):
     """
 
     evaluation of metric on the DataSet (treated as a single numpy matrix)
@@ -442,7 +581,8 @@ def global_dataset_eval(data, option='from_names'):
             assert (type(dataset) == list)
             print('loading fake data')
             rdata = load_batch(
-                dataset, n_samples, var_indices_fake=VI_f, crop_indices=CI, option=data_option)
+                dataset, n_samples, var_indices_fake=VI_f, crop_indices=CI,
+                option=data_option, mean_pert=mean_pert)
 
         elif data_option == 'real':
 
@@ -463,7 +603,6 @@ def global_dataset_eval(data, option='from_names'):
             real_dir+'mean_with_orog.npy')[VI].reshape(1, len(VI), 1, 1)
         Maxs = np.load(
             real_dir+'max_with_orog.npy')[VI].reshape(1, len(VI), 1, 1)
-
         rdata = normalize(rdata, 0.95, Means, Maxs)
 
     results = {}
