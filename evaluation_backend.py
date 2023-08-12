@@ -17,7 +17,7 @@ import base_config
 import pandas as pd
 
 real_data_dir = base_config.real_data_dir
-mean_pertt_data_dir = base_config.mean_pert_data_dir
+mean_pert_data_dir = base_config.mean_pert_data_dir
 
 
 def split_dataset(file_list, N_parts):
