@@ -62,9 +62,40 @@ def normalize(BigMat, scale, Mean, Max):
 
     """
 
-    res = scale*(BigMat-Mean)/(Max)
+    res = scale * (BigMat - Mean) / (Max)
 
     return res
+
+def denormalize_and_exp(BigMat, scale, Mean, Max, iter = 1):
+    """
+
+    De-normalize [ = set to physical scale] samples with specific Mean and max + rescaling
+    Then perform iterations of exponential on the data
+    Inputs :
+
+        BigMat : ndarray, samples to rescale
+
+        scale : float, scale to set maximum amplitude of samples
+
+        Mean, Max : ndarrays, must be broadcastable to BigMat
+
+        iter :  nb of exponential iterations to be applied; 1 -> exp(data - 1.0), 2 -> exp(exp(data-1)-1)
+
+    Returns :
+
+        res : ndarray, same dimensions as BigMat
+
+    """
+    
+    res = (1/ scale) * Max * BigMat + Mean 
+    
+    for j in range(iter):
+
+        res = np.exp(res) - 1.0
+    print(res.min(), res.max())
+    return res
+
+
 
 ##################################
 
@@ -407,7 +438,7 @@ def load_batch(file_list, number,
 
     return Mat
 
-def eval_distance_metrics(data, option='from_names', mean_pert=False):
+def eval_distance_metrics(data, option='from_names', mean_pert=False,iter=0):
     """
 
     this function should test distance metrics for datasets=[(filelist1, filelist2), ...]
@@ -446,6 +477,10 @@ def eval_distance_metrics(data, option='from_names', mean_pert=False):
 
        option : str, to choose if generated data is loaded from several files (from_names)
                or from one big Matrix (from_matrix)
+       
+       mean_pert :  wether mean/perturbation splitting is used in fake data
+
+       iter :  whether to perform exponential tf
 
     Returns :
 
@@ -458,9 +493,9 @@ def eval_distance_metrics(data, option='from_names', mean_pert=False):
     ## loading and normalizing data
     
     Means = np.load(
-        real_data_dir + 'mean_with_orog.npy')[VI].reshape(1,len(VI),1,1)
+        real_data_dir + 'mean_log_rr_imp.npy')[VI].reshape(1,len(VI),1,1)
     Maxs = np.load(
-        real_data_dir + 'max_with_orog.npy')[VI].reshape(1,len(VI),1,1)
+        real_data_dir + 'max_log_rr_imp.npy')[VI].reshape(1,len(VI),1,1)
     
     print('Loading data') 
     if list(dataset.keys()) == ['real','fake']:
@@ -488,9 +523,12 @@ def eval_distance_metrics(data, option='from_names', mean_pert=False):
 
         real_data = load_batch(
             dataset['real'], n_samples_0, var_indices_real=VI, var_indices_fake=VI_f, crop_indices=CI)
+        if iter==0:
+            print('normalizing')
+            real_data = normalize(real_data, 0.95, Means, Maxs)
+        else :
 
-        print('normalizing')
-        real_data = normalize(real_data, 0.95, Means, Maxs)
+            fake_data = denormalize_and_exp(fake_data, 0.95, Means, Maxs, iter = iter)
 
     elif list(dataset.keys()) == ['real0', 'real1']:
 
@@ -501,9 +539,10 @@ def eval_distance_metrics(data, option='from_names', mean_pert=False):
         real_data1 = load_batch(
             dataset['real1'], n_samples_1, var_indices_real=VI, crop_indices=CI)
 
-        real_data = normalize(real_data0, 0.95, Means, Maxs)
-        # not stricly "fake" but same
-        fake_data = normalize(real_data1, 0.95, Means, Maxs)
+        if iter==0 : 
+            real_data = normalize(real_data0, 0.95, Means, Maxs)
+            # not stricly "fake" but same
+            fake_data = normalize(real_data1, 0.95, Means, Maxs)
 
     else:
         raise ValueError("Dataset keys must be either 'real'/'fake' or 'real0'/'real1', not {}"
@@ -525,7 +564,7 @@ def eval_distance_metrics(data, option='from_names', mean_pert=False):
 
 def global_dataset_eval(data, option='from_names',
                     mean_file='mean_with_8_var.npy',
-                    max_file='max_with_8_var.npy', mean_pert=False):
+                    max_file='max_with_8_var.npy', mean_pert=False,iter=0):
     """
 
     evaluation of metric on the DataSet (treated as a single numpy matrix)
@@ -568,7 +607,7 @@ def global_dataset_eval(data, option='from_names',
     metrics_list, dataset, n_samples, VI, VI_f, CI, index, data_option = data
     
     print('evaluating backend',index)
-    #print(real_dir)
+
     if option=="from_names":
         
         if data_option=='fake' :
@@ -579,6 +618,13 @@ def global_dataset_eval(data, option='from_names',
             rdata = load_batch(
                 dataset, n_samples, var_indices_fake=VI_f, crop_indices=CI,
                 option=data_option, mean_pert=mean_pert)
+
+            if iter>0:
+                Means = np.load(
+                    real_data_dir+'mean_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+                Maxs = np.load(
+                    real_data_dir+'max_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+                rdata = denormalize_and_exp(rdata, 0.95, Means, Maxs, iter=iter)
 
         elif data_option == 'real':
 
@@ -593,14 +639,23 @@ def global_dataset_eval(data, option='from_names',
 
         rdata = np.load(dataset, dtype=np.float32)
 
+        if iter>0:
+            Means = np.load(
+                real_data_dir+'mean_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+            Maxs = np.load(
+                real_data_dir+'max_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+            rdata = denormalize_and_exp(rdata, 0.95, Means, Maxs, iter=iter)
+
     if data_option == 'real':
-        print('normalizing')
-        Means = np.load(
-            real_dir+'mean_with_orog.npy')[VI].reshape(1, len(VI), 1, 1)
-        Maxs = np.load(
-            real_dir+'max_with_orog.npy')[VI].reshape(1, len(VI), 1, 1)
-        rdata = normalize(rdata, 0.95, Means, Maxs)
-        
+
+        if iter==0:
+            print('normalizing')
+            Means = np.load(
+                real_data_dir+'mean_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+            Maxs = np.load(
+                real_data_dir+'max_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+            rdata = normalize(rdata, 0.95, Means, Maxs)
+
     results = {}
 
     for metric in metrics_list:

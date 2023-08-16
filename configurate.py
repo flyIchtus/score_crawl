@@ -121,6 +121,7 @@ def getAndNameDirs(option='rigid'):
         
         parser.add_argument("--use_noise", type=str2bool, default=[True], help="prevent noise injection if false")
         parser.add_argument("--mean_pert", type=str2bool, default = False, help="dataset with mean/pert separated")
+        parser.add_argument('--iter', type=int, default=0, help='iterative transform on fake data')
         
 
         multi_config = parser.parse_args()
@@ -177,6 +178,8 @@ def getAndNameDirs(option='rigid'):
             help = 'List of subset of variables to compute metrics on') # provide as: --variables ['u','v'] ['t2m'] for instance (list after list)
         parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
         parser.add_argument('--list_steps', type=str2list, help='list of steps to compute metrics on', default = ['0'])
+        parser.add_argument('--iter', type=int, default=0, help='iterative transform on fake data')
+
 
         multi_config = parser.parse_args()
 
@@ -234,6 +237,7 @@ def getAndNameDirs(option='rigid'):
             help = 'List of subset of variables to compute metrics on') # provide as: --variables ['u','v'] ['t2m'] for instance (list after list)
         parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
         parser.add_argument('--list_steps', type=str2list, help='list of steps to compute metrics on', default = ['0'])
+        parser.add_argument('--iter', type=int, default=0, help='iterative transform on fake data')
 
         multi_config = parser.parse_args()
 
@@ -313,6 +317,8 @@ def select_Config(multi_config, index, option='rigid'):
         config.instance_num = multi_config.instance_num[instance_index]
 
         config.mean_pert = multi_config.mean_pert
+        config.iter = multi_config.iter
+
         config.variables = multi_config.variables[index] if len(multi_config.variables) > 1 else \
                         multi_config.variables[0]
         
@@ -335,6 +341,8 @@ def select_Config(multi_config, index, option='rigid'):
         config.instance_num = 1
 
         config.mean_pert = multi_config.mean_pert
+        config.iter = multi_config.iter
+
         config.variables = multi_config.variables[index] if len(multi_config.variables) > 1 else \
                         multi_config.variables[0] 
         config.fake_prefix = base_config.fake_prefix
@@ -350,6 +358,8 @@ def select_Config(multi_config, index, option='rigid'):
 
         config.short_name = multi_config.short_names[index]
         config.mean_pert = multi_config.mean_pert
+        config.iter = multi_config.iter
+
         config.lr0 = 0
         config.batch = 0
         config.instance_num = 1
@@ -388,6 +398,8 @@ class Experiment():
         self.instance_num = expe_config.instance_num
 
         self.mean_pert = expe_config.mean_pert
+
+        self.iter = expe_config.iter
         
         self.fake_prefix = expe_config.fake_prefix
         

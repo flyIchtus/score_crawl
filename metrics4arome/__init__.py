@@ -237,3 +237,5 @@ qlist = [0.01,0.1,0.9,0.99]
 
 quant_metric = metric2D('Quantiles RMSE score', lambda real, fake : quant.quantile_score(real, fake, qlist = qlist), \
                           vars_wo_orog)
+quant_map = metric2D('Quantiles RMSE score', lambda data : quant.quantiles(data, qlist = qlist), \
+                          vars_wo_orog)

@@ -216,7 +216,7 @@ class EnsembleMetricsCalculator(Experiment):
                                   self.VI, self.VI_f, self.CI, step))
             
             with Pool(num_proc) as p :
-                res = p.map(partial(backend.eval_distance_metrics, mean_pert=mean_pert), data_list)
+                res = p.map(partial(backend.eval_distance_metrics, mean_pert=mean_pert, iter=self.iter), data_list)
                 
                 
             ## some cuisine to produce a rightly formatted dictionary
@@ -279,7 +279,7 @@ class EnsembleMetricsCalculator(Experiment):
                 # getting first (and only) item of the random real dataset program
                 dataset_r = backend.build_datasets(data_dir, self.program,
                                                    self.real_dataset_labels,
-                                                   fake_prefix = self.fake_prefix)[i0]
+                                                   fake_prefix=self.fake_prefix)[i0]
 
                 N_samples = self.program[i0][1]
 
@@ -291,7 +291,7 @@ class EnsembleMetricsCalculator(Experiment):
                         N_samples, N_samples,
                         self.VI, self.VI_f, self.CI, step)
 
-                res.append(partial(backend.eval_distance_metrics(data), mean_pert=mean_pert))
+                res.append(partial(backend.eval_distance_metrics(data), mean_pert=mean_pert, iter=self.iter))
 
             # some cuisine to produce a rightly formatted dictionary
 
@@ -354,7 +354,7 @@ class EnsembleMetricsCalculator(Experiment):
                               self.VI, self.VI, self.CI,i))
         
         with Pool(num_proc) as p :
-            res = p.map(backend.eval_distance_metrics, data_list)
+            res = p.map(partial(backend.eval_distance_metrics, mean_pert=mean_pert,iter=self.iter), data_list)
 
         # some cuisine to produce a rightly formatted dictionary
 
@@ -411,9 +411,9 @@ class EnsembleMetricsCalculator(Experiment):
                     self.VI, self.VI, self.CI, i)
 
             if i == 0:
-                res = [backend.eval_distance_metrics(data)]
+                res = [backend.eval_distance_metrics(data, mean_pert=self.mean_pert, iter=self.iter)]
             else:
-                res.append(backend.eval_distance_metrics(data))
+                res.append(backend.eval_distance_metrics(data, mean_pert=self.mean_pert, iter=self.iter))
 
         # some cuisine to produce a rightly formatted dictionary
 
@@ -466,7 +466,7 @@ class EnsembleMetricsCalculator(Experiment):
             
             with Pool(num_proc) as p :
             
-                res = p.map(backend.global_dataset_eval, data_list)
+                res = p.map(partial(backend.global_dataset_eval, iter=self.iter), data_list)
 
             ind_list = []
             d_res = defaultdict(list)
@@ -506,7 +506,7 @@ class EnsembleMetricsCalculator(Experiment):
                                           self.VI, self.VI_f, self.CI, step, option))
 
                 with Pool(num_proc) as p:
-                    res = p.map(partial(backend.global_dataset_eval, mean_pert=mean_pert), data_list)
+                    res = p.map(partial(backend.global_dataset_eval, mean_pert=mean_pert, iter=self.iter), data_list)
 
                 ind_list = []
                 d_res = defaultdict(list)
