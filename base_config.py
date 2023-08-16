@@ -17,4 +17,9 @@ fake_prefix = '_Fsample_'
 
 real_dataset_labels = 'labels/bootstrap/-0-2_50-0_1-0_0-0_20-0_0-0.csv' #'IS_train_dataset.csv'
 
+mean_pert_data_file = "mean_mean_pert.npy"
+max_pert_data_file = "max_mean_pert.npy"
+
+mean_data_file = 'mean_log_rr_imp.npy'
+max_data_file = 'max_log_rr_imp.npy'
 #####################################

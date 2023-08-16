@@ -117,14 +117,14 @@ def mean_pert_rescale(filename,
     """
     var_idxs = [var_id for var_id in var_indices_real] +\
 		                               [var_id+8 for var_id in var_indices_real]
-    Means_denorm = np.load(data_dir_mean_pert + "mean_mean_pert.npy")[var_idxs].reshape(2,1,1)
-    Maxs_denorm = np.load(data_dir_mean_pert + "max_mean_pert.npy")[var_idxs].reshape(2,1,1)
+    Means_denorm = np.load(data_dir_mean_pert + base_config.mean_pert_data_file)[var_idxs].reshape(2,1,1)
+    Maxs_denorm = np.load(data_dir_mean_pert + base_config.max_pert_data_file)[var_idxs].reshape(2,1,1)
     Stds_denorm = (1.0/0.95) * Maxs_denorm
 
     Means_renorm = np.load(data_dir_physical + \
-                  "mean_with_8_var.npy")[[var_id for var_id in var_indices_real]].reshape(len(var_indices_real),1,1)
+                  base_config.mean_data_file)[[var_id for var_id in var_indices_real]].reshape(len(var_indices_real),1,1)
     Maxs_renorm = np.load(data_dir_physical + \
-                  "max_with_8_var.npy")[[var_id for var_id in var_indices_real]].reshape(len(var_indices_real),1,1)
+                  base_config.mean_data_file)[[var_id for var_id in var_indices_real]].reshape(len(var_indices_real),1,1)
 		
     Stds_renorm = (1.0/0.95) * Maxs_renorm
 
@@ -493,9 +493,9 @@ def eval_distance_metrics(data, option='from_names', mean_pert=False,iter=0):
     ## loading and normalizing data
     
     Means = np.load(
-        real_data_dir + 'mean_log_rr_imp.npy')[VI].reshape(1,len(VI),1,1)
+        real_data_dir + base_config.mean_data_file)[VI].reshape(1,len(VI),1,1)
     Maxs = np.load(
-        real_data_dir + 'max_log_rr_imp.npy')[VI].reshape(1,len(VI),1,1)
+        real_data_dir + base_config.max_data_file)[VI].reshape(1,len(VI),1,1)
     
     print('Loading data') 
     if list(dataset.keys()) == ['real','fake']:
@@ -563,8 +563,7 @@ def eval_distance_metrics(data, option='from_names', mean_pert=False,iter=0):
     return results, index
 
 def global_dataset_eval(data, option='from_names',
-                    mean_file='mean_with_8_var.npy',
-                    max_file='max_with_8_var.npy', mean_pert=False,iter=0):
+                     mean_pert=False, iter=0):
     """
 
     evaluation of metric on the DataSet (treated as a single numpy matrix)
@@ -621,9 +620,9 @@ def global_dataset_eval(data, option='from_names',
 
             if iter>0:
                 Means = np.load(
-                    real_data_dir+'mean_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+                    real_data_dir + base_config.mean_data_file)[VI].reshape(1, len(VI), 1, 1)
                 Maxs = np.load(
-                    real_data_dir+'max_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+                    real_data_dir + base_config.max_data_file)[VI].reshape(1, len(VI), 1, 1)
                 rdata = denormalize_and_exp(rdata, 0.95, Means, Maxs, iter=iter)
 
         elif data_option == 'real':
@@ -641,9 +640,9 @@ def global_dataset_eval(data, option='from_names',
 
         if iter>0:
             Means = np.load(
-                real_data_dir+'mean_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+                real_data_dir + base_config.mean_data_file)[VI].reshape(1, len(VI), 1, 1)
             Maxs = np.load(
-                real_data_dir+'max_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+                real_data_dir + base_config.max_data_file)[VI].reshape(1, len(VI), 1, 1)
             rdata = denormalize_and_exp(rdata, 0.95, Means, Maxs, iter=iter)
 
     if data_option == 'real':
@@ -651,9 +650,9 @@ def global_dataset_eval(data, option='from_names',
         if iter==0:
             print('normalizing')
             Means = np.load(
-                real_data_dir+'mean_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+                real_data_dir + base_config.mean_data_file)[VI].reshape(1, len(VI), 1, 1)
             Maxs = np.load(
-                real_data_dir+'max_log_rr_imp.npy')[VI].reshape(1, len(VI), 1, 1)
+                real_data_dir + base_config.max_data_file)[VI].reshape(1, len(VI), 1, 1)
             rdata = normalize(rdata, 0.95, Means, Maxs)
 
     results = {}
