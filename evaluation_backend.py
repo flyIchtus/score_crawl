@@ -17,6 +17,7 @@ import base_config
 import pandas as pd
 
 real_data_dir = base_config.real_data_dir
+dataframe = base_config.real_dataset_labels
 mean_pert_data_dir = base_config.mean_pert_data_dir
 
 
@@ -77,27 +78,24 @@ def mean_pert_rescale(filename,
 
     list_inds :  filename list, used to load splitted data files
     Mat : receiving np.ndarray, to store final results
-
     data_dir_mean_pert : str, where to fetch splitted normalization constants
     data_dir_physical :  str, where to fetch physical constants
     var_indices_real : indices of the real variables to be fetched in real norm constants
     var_indices_fake : indices of the fake variables to be fetched in fake data samples
     case : str, discusses the formatting options to handle indices correctly
-
     """
-	var_idxs = [var_id for var_id in var_indices_real] +\
+    var_idxs = [var_id for var_id in var_indices_real] +\
 		                               [var_id+8 for var_id in var_indices_real]
+    Means_denorm = np.load(data_dir_mean_pert + "mean_mean_pert.npy")[var_idxs].reshape(2,1,1)
+    Maxs_denorm = np.load(data_dir_mean_pert + "max_mean_pert.npy")[var_idxs].reshape(2,1,1)
+    Stds_denorm = (1.0/0.95) * Maxs_denorm
 
-	Means_denorm = np.load(data_dir_mean_pert + "mean_mean_pert.npy")[var_idxs].reshape(2,1,1)
-	Maxs_denorm = np.load(data_dir_mean_pert + "max_mean_pert.npy")[var_idxs].reshape(2,1,1)
-	Stds_denorm = (1.0/0.95) * Maxs_denorm
-
-	Means_renorm = np.load(data_dir_physical + \
-		"mean_with_8_var.npy")[[var_id for var_id in var_indices_real]].reshape(len(var_indices_real),1,1)
-	Maxs_renorm = np.load(data_dir_physical + \
-		"max_with_8_var.npy")[[var_id for var_id in var_indices_real]].reshape(len(var_indices_real),1,1)
+    Means_renorm = np.load(data_dir_physical + \
+                  "mean_with_8_var.npy")[[var_id for var_id in var_indices_real]].reshape(len(var_indices_real),1,1)
+    Maxs_renorm = np.load(data_dir_physical + \
+                  "max_with_8_var.npy")[[var_id for var_id in var_indices_real]].reshape(len(var_indices_real),1,1)
 		
-	Stds_renorm = (1.0/0.95) * Maxs_renorm
+    Stds_renorm = (1.0/0.95) * Maxs_renorm
 
     if case=='isolated_single': # files are not batched, single variable
 
@@ -142,11 +140,9 @@ def mean_pert_rescale(filename,
 
     else:
         raise ValueError('Unknown case {}'.format(case))
-
 	# Renormalize 
-	mat = (tmp2-Means_renorm)/Stds_renorm
-	
-	return mat
+    mat = (tmp2-Means_renorm)/Stds_renorm
+    return mat
 
 ##################################
 
@@ -322,7 +318,7 @@ def load_batch(file_list, number,
                 Mat = np.zeros((number, len(var_indices_fake), Shape[2], Shape[3]),
                                dtype=np.float32)
 
-                list_inds = random.sample(file_list, number//batch)
+                list_inds = random.sample(file_list, number//batch + 1)
 
                 for i in range(number//batch):
 
@@ -357,10 +353,10 @@ def load_batch(file_list, number,
                         if not mean_pert:
                             tmp = np.load(
                                     list_inds[i+1])[remain_inds]
-                            Mat[i*batch:] =\
+                            Mat[(i+1)*batch:] =\
                                 tmp[:, ind_var:ind_var+1, :, :].astype(np.float32)
                         else:
-                            Mat[i*batch:] = mean_pert_rescale(list_inds[i+1], 
+                            Mat[(i+1)*batch:] = mean_pert_rescale(list_inds[i+1], 
                             mean_pert_data_dir,
                             real_data_dir,
                             var_indices_real, var_indices_fake, indices=remain_inds, case='batched_single')
@@ -369,10 +365,10 @@ def load_batch(file_list, number,
                         if not mean_pert:
                             tmp = np.load(
                                     list_inds[i+1])[remain_inds]
-                            Mat[i*batch:] =\
+                            Mat[(i+1)*batch:] =\
                                 tmp[:, var_indices_fake, :, :].astype(np.float32)
                         else:
-                            Mat[i*batch:] = mean_pert_rescale(list_inds[i+1], 
+                            Mat[(i+1)*batch:] = mean_pert_rescale(list_inds[i+1], 
                             mean_pert_data_dir,
                             real_data_dir,
                             var_indices_real, var_indices_fake, indices=remain_inds, case='batched_multiple')

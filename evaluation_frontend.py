@@ -197,7 +197,7 @@ class EnsembleMetricsCalculator(Experiment):
         for step in self.steps:
             print('Step', step)
             data_list=[]
-            for i0 in self.program_keys():
+            for i0 in self.program.keys():
                 
                 #getting first (and only) item of the random real dataset program
                 dataset_r = backend.build_datasets(real_data_dir, self.program, 

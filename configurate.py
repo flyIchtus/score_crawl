@@ -34,11 +34,11 @@ def str2list(li):
         if ', ' in li :
             li2=li[1:-1].split(', ')
             
-        elif ',' in li:
+        else: 
             li2=li[1:-1].split(',')
         
-        else:
-            li2 = li[1:-1]
+        #else:
+        #    li2 = li[1:-1]
 
         return li2
 
@@ -56,7 +56,7 @@ def retrieve_domain_parameters(path, instance_num):
             if "crop_indexes" in line :
                 CI=[int(c) for c in str2list(line[15:-1])]
             if "var_names" in line:
-                var_names = [v[1:-1] for v in str2list(line[12:-1])]
+                var_names = [v[2:-2] for v in str2list(line[12:-1])]
         print('variables', var_names)
         f.close()
         try:
@@ -93,14 +93,14 @@ def getAndNameDirs(option='rigid'):
                             help='Root of dir expe', default='/scratch/mrmn/moldovang/')
 
         parser.add_argument('--glob_name', type=str,
-                            help='Global experiment name', default='stylegan2_stylegan_512')
+                            help='Global experiment name', default='stylegan2_stylegan_')
 
         parser.add_argument('--expe_set', type=int,
                             help='Set of experiments to dig in.', default=1)
         parser.add_argument(
-            '--lr0', type=str2list, help='Set of initial learning rates', default=[0.001, 0.005])
+            '--lr0', type=str2list, help='Set of initial learning rates', default=[0.002])
         parser.add_argument('--batch_sizes', type=str2list,
-                            help='Set of batch sizes experimented', default=[8, 16, 32])
+                            help='Set of batch sizes experimented', default=[16])
         parser.add_argument('--instance_num', type=str2list,
                             help='Instances of experiment to dig in', default=[1, 2, 3, 4])
         parser.add_argument('--conditional', type=str2bool,
@@ -132,7 +132,7 @@ def getAndNameDirs(option='rigid'):
         list_steps = []
 
         root_expe_path = multi_config.root_expe_path
-
+        
         for lr in multi_config.lr0:
             for batch in multi_config.batch_sizes:
                 for instance in multi_config.instance_num:
@@ -141,13 +141,13 @@ def getAndNameDirs(option='rigid'):
                             for n in multi_config.use_noise:
                                 for dom_size in multi_config.dom_sizes:
 
-                                    name = root_expe_path\
+                                    name = root_expe_path + 'Set_'+ str(multi_config.expe_set) + '/'  \
                                             +multi_config.glob_name+f'dom_{dom_size}_lat-dim_'+str(dim)+'_bs_'+str(batch)\
                                             +'_'+str(lr)+'_'+str(lr)+'_ch-mul_'+str(multi_config.ch_multip)\
                                             + '_vars_' + '_'.join(str(var) for var in vars)\
                                             +f'_noise_{n}'\
                                             +("_mean_pert" if multi_config.mean_pert else "")\
-                                            +f'/Instance_'+str(instance)
+                                            +'/Instance_'+ instance
                                     names.append(name)
 
                                     short_names.append('Instance_{}_Batch_{}_LR_{}_LAT_{}'.format(instance, batch,lr, multi_config.latent_dim))
@@ -312,7 +312,7 @@ def select_Config(multi_config, index, option='rigid'):
         config.batch = multi_config.batch_sizes[((index//insts) % batches)]
         config.instance_num = multi_config.instance_num[instance_index]
 
-
+        config.mean_pert = multi_config.mean_pert
         config.variables = multi_config.variables[index] if len(multi_config.variables) > 1 else \
                         multi_config.variables[0]
         
@@ -334,7 +334,7 @@ def select_Config(multi_config, index, option='rigid'):
         config.batch = 0
         config.instance_num = 1
 
-
+        config.mean_pert = multi_config.mean_pert
         config.variables = multi_config.variables[index] if len(multi_config.variables) > 1 else \
                         multi_config.variables[0] 
         config.fake_prefix = base_config.fake_prefix
@@ -349,7 +349,7 @@ def select_Config(multi_config, index, option='rigid'):
         config.steps = multi_config.list_steps[index]
 
         config.short_name = multi_config.short_names[index]
-
+        config.mean_pert = multi_config.mean_pert
         config.lr0 = 0
         config.batch = 0
         config.instance_num = 1
