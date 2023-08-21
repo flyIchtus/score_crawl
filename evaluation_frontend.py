@@ -128,7 +128,7 @@ class EnsembleMetricsCalculator(Experiment):
                 name = '_distance_metrics_'
 
                 if real:
-                    func = self.parallelEstimation_realVreal
+                    func = self.parallelEstimation_realVSreal
                 else:
                     func = self.parallelEstimation_realVSfake
                     
@@ -340,7 +340,7 @@ class EnsembleMetricsCalculator(Experiment):
                                           self.real_dataset_labels,
                                           fake_prefix = self.fake_prefix)
         data_list = []         
-    
+        
         #getting the two random datasets programs
         
         for i in range(len(datasets)):
@@ -354,7 +354,7 @@ class EnsembleMetricsCalculator(Experiment):
                               self.VI, self.VI, self.CI,i))
         
         with Pool(num_proc) as p :
-            res = p.map(partial(backend.eval_distance_metrics, mean_pert=mean_pert,iter=self.iter), data_list)
+            res = p.map(partial(backend.eval_distance_metrics, mean_pert=self.mean_pert,iter=self.iter), data_list)
 
         # some cuisine to produce a rightly formatted dictionary
 
@@ -456,7 +456,8 @@ class EnsembleMetricsCalculator(Experiment):
         if option=='real':
             
             self.steps =[0]
-            dataset_r = backend.build_datasets(real_data_dir, self.program, 
+            program_stda = {k : (1, v[1]) for k,v in self.program.items()}
+            dataset_r = backend.build_datasets(real_data_dir, program_stda, 
                                                self.real_dataset_labels,
                                                fake_prefix = self.fake_prefix) 
             

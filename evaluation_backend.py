@@ -539,10 +539,13 @@ def eval_distance_metrics(data, option='from_names', mean_pert=False,iter=0):
         real_data1 = load_batch(
             dataset['real1'], n_samples_1, var_indices_real=VI, crop_indices=CI)
 
-        if iter==0 : 
+        if iter==0 :
+            print('normalizing')
             real_data = normalize(real_data0, 0.95, Means, Maxs)
             # not stricly "fake" but same
             fake_data = normalize(real_data1, 0.95, Means, Maxs)
+        else :
+            real_data, fake_data = real_data0, real_data1
 
     else:
         raise ValueError("Dataset keys must be either 'real'/'fake' or 'real0'/'real1', not {}"
