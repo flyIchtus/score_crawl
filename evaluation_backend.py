@@ -103,23 +103,24 @@ def build_datasets(data_dir, program,step=None, option='real'):
     
     """
     if step is not None:
-        name='_Fsample_'+str(step)+'_'
+        name='_Fsample_concat_'+str(step)+'_'
     else:
-        name='_Fsample'
+        name='_Fsample_concat'
         
 
     if option=='fake':
         globList=glob(data_dir+name+'*')
         
     else:
-        globList=glob(data_dir+'_sample*')
+        globList=glob(data_dir+'_sample_concat*') # there should be one file
         
     res={}
     
     
     for key, value in program.items():
+        """
         if value[0]==2:
-
+            
             fileList=random.sample(globList,2*value[1])
             
             res[key]=split_dataset(fileList,2)
@@ -129,11 +130,14 @@ def build_datasets(data_dir, program,step=None, option='real'):
             fileList=random.sample(globList,value[1])
             
             res[key]=fileList
+        """
+        # not sure about this but it should work. We don't use split_datasets anymore
+        res[key] = random.sample(globList,value[1])
 
     return res
 
 
-def load_batch(file_list,number,\
+def load_batch(bigfile_name,number,\
                var_indices_real = None, var_indices_fake = None,
                crop_indices=None,
                option='real',\
@@ -145,7 +149,7 @@ def load_batch(file_list,number,\
     
     Inputs :
         
-        file_list : list of files to be sampled from
+        bigfile_name : path to the concatenation of all samples to sample from
         
         number : int, the number of samples to draw
         
@@ -168,8 +172,8 @@ def load_batch(file_list,number,\
         Mat : numpy array, shape  number x C x Shape[1] x Shape[2] matrix
         
     """
-    
-    print('length of file list', len(file_list))
+    nb_files = np.load(bigfile_name, mmap_mode='r')[:, 0].shape[0]
+    print('length of file list', nb_files)
     
     if option=='fake':
         # in this case samples can either be in isolated files or grouped in batches
@@ -177,48 +181,45 @@ def load_batch(file_list,number,\
         assert var_indices_fake is not None # sanity check
         
         
-        if len(var_indices_fake) ==1 :                    
+        if len(var_indices_fake) == 1 :                    
             ind_var = var_indices_fake[0]
         
-        Shape = np.load(file_list[0]).shape
+        Shape = (nb_files, *np.load(bigfile, mmap_mode='r')[0].shape)
 
         ## case : isolated files (no batching)
         
-        if len(Shape)==3:
+        #if len(Shape)==3:
             
-            Mat = np.zeros((number, len(var_indices_fake), Shape[1], Shape[2]), dtype=np.float32)
+        #    Mat = np.zeros((number, len(var_indices_fake), Shape[1], Shape[2]), dtype=np.float32)
             
-            list_inds = random.sample(file_list, number)
+        #    list_inds = random.sample(range(bigfile.shape[0]), number)
             
-            for i in range(number) :
+        #    for i in range(number) :
                 
-                if len(var_indices_fake)==1 :
-                    Mat[i] = np.load(list_inds[i])[ind_var:ind_var+1,:,:].astype(np.float32)
-                else :    
-                    Mat[i] = np.load(list_inds[i])[var_indices_fake,:,:].astype(np.float32)
+        #        if len(var_indices_fake)==1 :
+        #            Mat[i] = np.load(bigfile, mmap_mode='r')[i][ind_var:ind_var+1,:,:].astype(np.float32)
+        #        else :    
+        #            Mat[i] = np.load(bigfile, mmap_mode='r')[i][var_indices_fake,:,:].astype(np.float32)
         
         ## case : batching -> select the right number of files to get enough samples
-        elif len(Shape)==4:
+        if len(Shape)==4:
             print('loading batches')
             batch = Shape[0]
                         
-            if batch > number : # one file is enough
+            indices = random.sample(range(batch), number)
                 
-                indices = random.sample(range(batch), number)
-                k = random.randint(0,len(file_list)-1)
+            if len(var_indices_fake)==1 :                    
+                Mat = np.load(bigfile, mmap_mode='r')[indices][ind_var:ind_var+1,:,:].astype(np.float32)
+            else : 
+                Mat = np.load(bigfile, mmap_mode='r')[indices][var_indices_fake,:,:].astype(np.float32)
                 
-                if len(var_indices_fake)==1 :                    
-                    Mat = np.load(file_list[k])[indices, ind_var:ind_var+1,:,:]
-                else : 
-                    Mat = np.load(file_list[k])[indices, var_indices_fake,:,:]
-                
-            
+            """
             else : #select multiple files and fill the number
             
                 Mat=np.zeros((number, len(var_indices_fake), Shape[2], Shape[3]), \
                                                          dtype=np.float32)
                 
-                list_inds=random.sample(file_list, number//batch)
+                list_inds=random.sample(range(bigfile.shape[, number//batch)
                 
                 for i in range(number//batch) :
                     
@@ -240,7 +241,7 @@ def load_batch(file_list,number,\
                     else :
                         Mat[i*batch :] =\
                     np.load(list_inds[i+1])[remain_inds, var_indices_fake,:,:].astype(np.float32)
-                
+            """    
 
     elif option=='real':
         
@@ -252,21 +253,21 @@ def load_batch(file_list,number,\
         
         Mat=np.zeros((number, Shape[0], Shape[1], Shape[2]), dtype=np.float32)
         
-        list_inds=random.sample(file_list, number) # randomly drawing samples
+        list_inds=random.sample(range(nb_files), number) # randomly drawing samples
         
-        for i in range(number):
-            if len(var_indices_real)==1 :
-                
-                ind_var = var_indices_real[0]
-                
-                Mat[i]=np.load(list_inds[i])[ind_var:ind_var+1,
-                                           crop_indices[0]:crop_indices[1],
-                                           crop_indices[2]:crop_indices[3]].astype(np.float32)
-            else :
-                
-                Mat[i]=np.load(list_inds[i])[var_indices_real,
-                                           crop_indices[0]:crop_indices[1],
-                                           crop_indices[2]:crop_indices[3]].astype(np.float32)
+        #for i in range(number):
+        if len(var_indices_real)==1 :
+            
+            ind_var = var_indices_real[0]
+            
+            Mat=np.load(bigfile_name, mmap_mode='r')[list_inds][ind_var:ind_var+1,
+                                       crop_indices[0]:crop_indices[1],
+                                       crop_indices[2]:crop_indices[3]].astype(np.float32)
+        else :
+            
+            Mat=np.load(bigfile_name, mmap_mode='r')[list_inds][var_indices_real,
+                                       crop_indices[0]:crop_indices[1],
+                                       crop_indices[2]:crop_indices[3]].astype(np.float32)
                 
 
     return Mat
@@ -323,7 +324,7 @@ def eval_distance_metrics(data, option = 'from_names', data_dir = data_dir_0):
     
     ## loading and normalizing data
     
-    Means=np.load(data_dir_0+'mean_with_orog.npy')[VI].reshape(1,len(VI),1,1)
+    Means=np.load(data_dir_0+'mean_with_orog.npy')[VI].reshape(1,len(VI),1,1) # c'est un peu vieux ça comme fichier, non ?
     Maxs=np.load(data_dir_0+'max_with_orog.npy')[VI].reshape(1,len(VI),1,1)
     
     print('Loading data') 
