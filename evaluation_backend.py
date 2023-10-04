@@ -348,8 +348,7 @@ def load_batch(file_list, number,
 
                 Mat = np.zeros((number, len(var_indices_fake), Shape[2], Shape[3]),
                                dtype=np.float32)
-
-                list_inds = random.sample(file_list, number//batch + 1)
+                list_inds = random.sample(file_list, number//batch)
 
                 for i in range(number//batch):
 
@@ -562,7 +561,7 @@ def eval_distance_metrics(data, option='from_names', mean_pert=False,iter=0):
         Metric = getattr(metrics, metric)
 
         results[metric] = Metric(real_data, fake_data, select=False)
-
+    print(results)
     return results, index
 
 def global_dataset_eval(data, option='from_names',

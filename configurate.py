@@ -90,7 +90,7 @@ def getAndNameDirs(option='rigid'):
         parser = argparse.ArgumentParser()
 
         parser.add_argument('--root_expe_path', type=str,
-                            help='Root of dir expe', default='/scratch/mrmn/moldovang/')
+                            help='Root of dir expe', default='/scratch/mrmn/gandonb/Exp_StyleGAN/')
 
         parser.add_argument('--glob_name', type=str,
                             help='Global experiment name', default='stylegan2_stylegan_')
@@ -98,17 +98,17 @@ def getAndNameDirs(option='rigid'):
         parser.add_argument('--expe_set', type=int,
                             help='Set of experiments to dig in.', default=1)
         parser.add_argument(
-            '--lr0', type=str2list, help='Set of initial learning rates', default=[0.002])
+            '--lr0', type=str2list, help='Set of initial learning rates', default=[0.0002])
         parser.add_argument('--batch_sizes', type=str2list,
-                            help='Set of batch sizes experimented', default=[16])
+                            help='Set of batch sizes experimented', default=[32])
         parser.add_argument('--instance_num', type=str2list,
-                            help='Instances of experiment to dig in', default=[1, 2, 3, 4])
+                            help='Instances of experiment to dig in', default=[1])
         parser.add_argument('--conditional', type=str2bool,
                             help='Whether experiment is conditional', default=False)
         parser.add_argument('--n_samples', type=int,
-                            help='Set of experiments to dig in.', default=100)
+                            help='Set of experiments to dig in.', default=16384)
         parser.add_argument('--list_steps', type=str2list,
-                            help='prefix for the real data files', default=['0'])
+                            help='prefix for the real data files', default=[k * 2000 for k in range(26)])
 
         parser.add_argument('--ch_multip', type=int, help='channel multiplier', default=2)
 
@@ -116,7 +116,7 @@ def getAndNameDirs(option='rigid'):
         parser.add_argument('--latent_dim', type=str2list, default=[512], help='size of the latent vector')
         parser.add_argument("--dom_sizes", type=str2list, default = [256], help="size of domain")
         
-        parser.add_argument('--variables', type = str2list, nargs="+", default=['u','v','t2m','z500','t850','tpw850'],
+        parser.add_argument('--variables', type = str2list, nargs="+", default=['rr'],
             help = 'List of subset of variables to compute metrics on') # provide as: --variables ['u','v'] ['t2m'] for instance (list after list)
         
         parser.add_argument("--use_noise", type=str2bool, default=[True], help="prevent noise injection if false")
@@ -153,7 +153,7 @@ def getAndNameDirs(option='rigid'):
 
                                     short_names.append('Instance_{}_Batch_{}_LR_{}_LAT_{}'.format(instance, batch,lr, multi_config.latent_dim))
                                     
-                                    list_steps.append([int (s) for s in multi_config.list_steps])
+                                    list_steps.append([int(s) for s in multi_config.list_steps])
 
         data_dir_names, log_dir_names = [
             f+'/samples/' for f in names], [f+'/log/' for f in names]

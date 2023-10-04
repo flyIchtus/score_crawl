@@ -122,7 +122,7 @@ class criterion2D(metric2D):
         ################## Metrics catalogue #####################
         
 standalone_metrics = {'spectral_compute','spectral_distrib', 'struct_metric','ls_metric', 'IntraMapVariance',
-                    'InterMapVariance'}
+                    'InterMapVariance', 'quant_map'}
 
 distance_metrics = {'Orography_RMSE', 'W1_Center', "W1_Center_NUMPY", "W1_random",
                     "W1_random_NUMPY",

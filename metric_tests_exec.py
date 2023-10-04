@@ -9,6 +9,7 @@ Metrics Executable
 
 """
 import evaluation_frontend as frontend
+import base_config
 from configurate import getAndNameDirs, select_Config
 
 
@@ -18,23 +19,26 @@ if __name__ == "__main__":
 
     program = {i: (1, N_samples) for i in range(1)}
 
-    distance_metrics_list = ["pw_W1", "multivar", "W1_random_NUMPY",
-                             "W1_Center_NUMPY", "SWD_metric_torch", "quant_metric"]
-    # standalone_metrics_list=["spectral_compute", "struct_metric","ls_metric"]
-    standalone_metrics_list = ["spectral_compute", "ls_metric"]
+    # distance_metrics_list = ["W1_Center_NUMPY"]
+    distance_metrics_list = ["W1_random_NUMPY", "W1_Center_NUMPY", "SWD_metric_torch"]
+    # # standalone_metrics_list=["spectral_compute", "struct_metric","ls_metric"]
+    # standalone_metrics_list = ["spectral_compute", "ls_metric", "quant_map"]
 
+    #standalone_metrics_list=["spectral_compute","ls_metric","quant_map"]
+    standalone_metrics_list = ["quant_map"]
+    num = base_config.num
     for ind in range(configuration_set.length):
 
         expe_config = select_Config(configuration_set, ind, option='rigid')
 
         mC = frontend.EnsembleMetricsCalculator(
-            expe_config, add_name='test_standalone')
+            expe_config, add_name=f'test_standalone_{num}')
 
         mC.estimation(standalone_metrics_list, program,
-                      standalone=True, parallel=True)
+                      standalone=True, parallel=True, real=False)
 
         mC = frontend.EnsembleMetricsCalculator(
-            expe_config, add_name='test_distance', )
+            expe_config, add_name=f'test_distance_{num}', )
 
         mC.estimation(distance_metrics_list, program,
-                      standalone=False, parallel=True)
+                      standalone=False, parallel=True, real=False)
