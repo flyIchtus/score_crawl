@@ -11,19 +11,18 @@ Metrics computation automation
 """
 
 
+import os
 import pickle
-from glob import glob
-import numpy as np
-from multiprocessing import Pool
 from collections import defaultdict
 from functools import partial
+from glob import glob
+from multiprocessing import Pool
 
-
-from configurate import Experiment
+import base_config
 import evaluation_backend as backend
 import metrics4arome as metrics
-import base_config
-
+import numpy as np
+from configurate import Experiment
 
 ########### standard parameters #####
 
@@ -47,7 +46,7 @@ class EnsembleMetricsCalculator(Experiment):
     ######################### Main class method ###############################
     ###########################################################################
 
-    def estimation(self, metrics_list, program, parallel=False, standalone=False, real=False):
+    def estimation(self, config, metrics_list, program, parallel=False, standalone=False, real=False):
         """
 
         estimate all metrics contained in metrics_list on training runs
@@ -87,92 +86,58 @@ class EnsembleMetricsCalculator(Experiment):
             dumps the results in a pickle file
 
         """
-
         # sanity checks
-
         if standalone and not parallel:
-            raise (
-                ValueError, 'Estimation for standalone metric should be done in parallel')
+            raise ValueError("Estimation for standalone metric should be done in parallel")
 
         if standalone:
-
             assert set(metrics_list) <= metrics.standalone_metrics
-
         else:
-
             assert set(metrics_list) <= metrics.distance_metrics
 
         for metric in metrics_list:
             assert hasattr(metrics, metric)
-            
+
         ########################
-
         self.program = program
-
         if parallel:
-
             if standalone:
-
                 name = '_standalone_metrics_'
-
                 if real:
-
-                    def func(m_list): return self.parallelEstimation_standAlone(
-                        m_list, option='real')
-
+                    def func(config, m_list): return self.parallelEstimation_standAlone(config, m_list, option='real')
                 else:
                     func = self.parallelEstimation_standAlone
-
             else:
-
                 name = '_distance_metrics_'
-
                 if real:
                     func = self.parallelEstimation_realVSreal
                 else:
                     func = self.parallelEstimation_realVSfake
                     
         else:
-
             name = '_distance_metrics_'
-
             if real:
                 func = self.sequentialEstimation_realVSreal
-
             else:
                 func = self.sequentialEstimation_realVSfake
+        results = func(config, metrics_list)
 
-        results = func(metrics_list)
-
-
-        N_samples_set = [self.program[i][1] for i in range(len(program))]
-
+        N_samples_set = sorted([n_samples for n_samples in self.program.values()])
         N_samples_name = '_'.join([str(n) for n in N_samples_set])
 
         if not real:
-            N_samples_name = 'step_' + '_'.join([str(s) for s in self.steps]) + '_' + N_samples_name
+            N_samples_name = f"step_{'_'.join([str(s) for s in self.steps])}_{N_samples_name}"
         else:
-            N_samples_name = '_'.join([var for var in self.var_names]) + f'_dom_{self.dom_size}_' + N_samples_name
-
-        if real:
-
-            temp_log_dir = self.log_dir
-            
-            self.log_dir = real_data_dir
-        
-        dumpfile = self.log_dir + self.add_name+name + str(N_samples_name)+'.p'
-
-        if real:
-
-            self.log_dir = temp_log_dir
-
-        pickle.dump(results, open(dumpfile, 'wb'))
+            N_samples_name = f"{'_'.join([var for var in self.var_names])}_dom_{self.dom_size}_{N_samples_name}"
+        dumpfile = f"{self.log_dir}{self.add_name}{name}{N_samples_name}.p"
+        with open(dumpfile, 'wb') as pkfile:
+            pickle.dump(results, pkfile)
+        print(f"\n\n{'*' * 100}\nResults {'standalone' if standalone else 'distance'} {'real' if real else 'fake'} saved in {dumpfile}\n{'*' * 100}\n")
 
     ###########################################################################
     ############################   Estimation strategies ######################
     ###########################################################################
-
-    def parallelEstimation_realVSfake(self, metrics_list):
+    def parallelEstimation_realVSfake(self, config, metrics_list):
         """
 
         makes a list of datasets with each item of self.steps
@@ -190,67 +155,112 @@ class EnsembleMetricsCalculator(Experiment):
             res : ndarray, the results array (precise shape defined by the metric)
 
         """
-        mean_pert = self.mean_pert
-        print("mean/pert", mean_pert)
+        print("PARALLEL ESTIMATION REALvsFAKE")
         RES = {}
+        RES_inv = {}
+        crop_size = crop_size = (self.CI[1] - self.CI[0], self.CI[3] - self.CI[2])
+        Transformer = backend.Transform(config, crop_size)
+        if len(self.steps) > len(self.program):
+            for prog_idx in self.program.keys():
+                data_list = [(config, Transformer, prog_idx, step, metrics_list) for step in self.steps]
+                with Pool(num_proc) as p :
+                    res = p.starmap(self.process_data, data_list)
+                result_dict_list = {dict_step_tuple[1]: dict_step_tuple[0] for dict_step_tuple in res}
+                RES[prog_idx] = result_dict_list
+        else:
+            for step in self.steps:
+                data_list = [(config, Transformer, prog_idx, step, metrics_list, False) for prog_idx in self.program.keys()]
+                with Pool(num_proc) as p :
+                    res = p.starmap(self.process_data, data_list)
+                result_dict_list = {dict_step_tuple[1]: dict_step_tuple[0] for dict_step_tuple in res}
+                RES_inv[step] = result_dict_list
+            RES = {}
+            for step, dict_prog_idx_res in RES_inv.items():
+                for prog_idx, result in dict_prog_idx_res.items():
+                    if prog_idx in RES.keys():
+                        RES[prog_idx][step] = result[0]
+                    else:
+                        RES[prog_idx] = {step: result[0]}
+        print(f"RES.keys(): {RES.keys()}")
+        print(f"RES[0].keys(): {RES[0].keys()}")
+        print(f"RES[0][0].keys(): {RES[0][0].keys()}")
+        return RES
+    
+    def process_data(self, config, Transformer, prog_idx, step, metrics_list, parallel_on_steps = True):
+            dataset_r = backend.build_real_datasets(real_data_dir, self.program)[prog_idx]
+            files = glob(os.path.join(self.data_dir_f,f"{self.fake_prefix}{step}_*.npy"))
+            N_samples = self.program[prog_idx]
+            N_samples = check_number_files(files, N_samples)
+            result = backend.eval_distance_metrics(config, Transformer, metrics_list, {'real': dataset_r, 'fake': files}, N_samples, N_samples, self.VI, self.VI_f, self.CI, step)
+            if parallel_on_steps:
+                return result
+            return result, prog_idx
+    # def parallelEstimation_realVSfake(self, config, metrics_list):
+    #     """
 
-        for step in self.steps:
-            print('Step', step)
-            data_list=[]
-            for i0 in self.program.keys():
-                
-                #getting first (and only) item of the random real dataset program
-                dataset_r = backend.build_datasets(real_data_dir, self.program, 
-                                                   self.real_dataset_labels,
-                                                   fake_prefix = self.fake_prefix)[i0]
-                
-                N_samples = self.program[i0][1]
-                
-                #getting files to analyze from fake dataset
-                files = glob(self.data_dir_f +
-                             self.fake_prefix + str(step)+'_*.npy')
-                
-              
-                data_list.append((metrics_list, {'real': dataset_r,'fake': files},\
-                                  N_samples, N_samples,\
-                                  self.VI, self.VI_f, self.CI, step))
-            
-            with Pool(num_proc) as p :
-                res = p.map(partial(backend.eval_distance_metrics, mean_pert=mean_pert, iter=self.iter), data_list)
-                
-                
-            ## some cuisine to produce a rightly formatted dictionary
+    #     makes a list of datasets with each item of self.steps
+    #     and use multiple processes to evaluate the metric in parallel on each
+    #     item.
 
-            ind_list=[]
-            d_res = defaultdict(list)
-            
-            for res_index in res :
-                
-                index = res_index[1]
-                res0 = res_index[0]
-                for k, v in res0.items():
+    #     The metric must be a distance metric and the data should be real / fake
+
+    #     Inputs : 
+
+    #         metric : str, the metric to evaluate
+
+    #     Returns :
+
+    #         res : ndarray, the results array (precise shape defined by the metric)
+
+    #     """
+    #     mean_pert = self.mean_pert
+    #     RES = {}
+    #     RES_inv = {}
+    #     Detransf = backend.Detransform(config)
+    #     if len(self.steps) > len(self.program):
+    #         for prog_idx in self.program.keys():
+    #             data_list=[]
+    #             for step in self.steps:
+    #                 #getting first (and only) item of the random real dataset program
+    #                 dataset_r = backend.build_datasets(real_data_dir, self.program, fake_prefix = self.fake_prefix)[prog_idx]
+    #                 N_samples = self.program[prog_idx][1]
                     
-                    d_res[k].append(v)
-                ind_list.append(index)
-            
-            #for k in d_res.keys():
-            #    print((ind_list, d_res[k]))
-            #    d_res[k]= [x for _,x in sorted(zip(ind_list, d_res[k]))]
-            
-            res = { k : v  for k,v in d_res.items()}
-            RES[step] = res
-        if len(self.steps)==1:
-            RES2 = {}
-            for i0 in self.program.keys():
-                RES2[i0] = {}
-                for key in RES[step].keys():
-                    RES2[i0][key] = RES[step][key][i0]
-        if step==self.steps[0] and i0==0:
-            return res
-        else :
-            return RES if len(self.steps)!=1 else RES2
+    #                 #getting files to analyze from fake dataset
+    #                 files = glob(f"{self.data_dir_f}{self.fake_prefix}{step}_*.npy")
+    #                 N_samples = check_number_files(files, N_samples)
+    #                 data_list.append((config, metrics_list, {'real': dataset_r, 'fake': files}, N_samples, N_samples, Detransf, self.VI, self.VI_f, self.CI, step))
+    #             with Pool(num_proc) as p :
+    #                 res = p.map(backend.eval_distance_metrics, data_list)
+    #             result_dict_list = {dict_step_tuple[1]: dict_step_tuple[0] for dict_step_tuple in res}
+    #             print(f"result_dict_list.keys(): {result_dict_list.keys()}")
+    #             print(f"result_dict_list[{self.steps[0]}].keys(): {result_dict_list[self.steps[0]].keys()}")
+    #             RES[prog_idx] = res
+    #     else:
+    #         for step in self.steps:
+    #             data_list=[]
+    #             for prog_idx in self.program.keys():
+    #                 #getting first (and only) item of the random real dataset program
+    #                 dataset_r = backend.build_datasets(real_data_dir, self.program, fake_prefix = self.fake_prefix)[prog_idx]
+    #                 N_samples = self.program[prog_idx][1]
+                    
+    #                 #getting files to analyze from fake dataset
+    #                 files = glob(f"{self.data_dir_f}{self.fake_prefix}{step}_*.npy")
+    #                 N_samples = check_number_files(files, N_samples)
+    #                 data_list.append((config, metrics_list, {'real': dataset_r, 'fake': files}, N_samples, N_samples, Detransf, self.VI, self.VI_f, self.CI, index))
+    #             with Pool(num_proc) as p :
+    #                 res = p.map(backend.eval_distance_metrics, data_list)
+    #             result_dict_list = {dict_step_tuple[1]: dict_step_tuple[0] for dict_step_tuple in res}
+    #             print(f"result_dict_list.keys(): {result_dict_list.keys()}")
+    #             print(f"result_dict_list[{self.steps[0]}].keys(): {result_dict_list[self.steps[0]].keys()}")
+    #             RES_inv[step] = res
+    #         for key, value in RES_inv.items():
+    #             for key_val, val in value.items():
+    #                 d_interm = {}
+    #                 d_interm[key] = value
+    #                 RES[key_val] = d_interm
+    #     return RES
 
-    def sequentialEstimation_realVSfake(self, metrics_list):
+    def sequentialEstimation_realVSfake(self, config, metrics_list, detransf=True):
         """
 
         Iterates the evaluation of the metric on each item of self.steps
@@ -269,23 +279,19 @@ class EnsembleMetricsCalculator(Experiment):
         """
         mean_pert = self.mean_pert
         RES = {}
-
-        for i0 in self.program.keys():
-
+        if detransf:
+            Detransf = backend.Detransform(config)
+        else:
+            Detransf = None
+        for prog_idx in self.program.keys():
             res = []
-
             for step in self.steps:
-                
                 # getting first (and only) item of the random real dataset program
-                dataset_r = backend.build_datasets(data_dir, self.program,
-                                                   self.real_dataset_labels,
-                                                   fake_prefix=self.fake_prefix)[i0]
-
-                N_samples = self.program[i0][1]
-
+                dataset_r = backend.build_datasets(data_dir, self.program, fake_prefix=self.fake_prefix)[prog_idx]
+                
+                N_samples = self.program[prog_idx][1]
                 # getting files to analyze from fake dataset
-                files = glob(self.data_dir_f +
-                             self.fake_prefix + str(step)+'_*.npy')
+                files = glob(f"{self.data_dir_f}{self.fake_prefix}{step}_*.npy")
 
                 data = (metrics_list, {'real': dataset_r, 'fake': files},
                         N_samples, N_samples,
@@ -314,7 +320,7 @@ class EnsembleMetricsCalculator(Experiment):
         else:
             return RES
 
-    def parallelEstimation_realVSreal(self, metric):
+    def parallelEstimation_realVSreal(self, config, metric):
         """
 
         makes a list of datasets with each pair of real datasets contained
@@ -335,49 +341,24 @@ class EnsembleMetricsCalculator(Experiment):
             res : ndarray, the results array (precise shape defined by the metric)
 
         """
-        
-        datasets = backend.build_datasets(real_data_dir, self.program, 
-                                          self.real_dataset_labels,
-                                          fake_prefix = self.fake_prefix)
-        data_list = []         
-        
-        #getting the two random datasets programs
-        
-        for i in range(len(datasets)):
-
-            N_samples = self.program[i][1]
-
-            data_list.append((metric,
-                              {'real0': datasets[i][0],
-                                  'real1': datasets[i][1]},
-                              N_samples, N_samples,
-                              self.VI, self.VI, self.CI,i))
-        
+        print("PARALLEL ESTIMATION REALvsREAL")
+        crop_size = (self.CI[1] - self.CI[0], self.CI[3] - self.CI[2])
+        Transformer = backend.Transform(config, crop_size)
+        datasets_real = backend.build_real_datasets(real_data_dir, self.program, distance=True)
+        data_list = [(config, Transformer, datasets_real, prog_idx, metric) for prog_idx in self.program.keys()]
         with Pool(num_proc) as p :
-            res = p.map(partial(backend.eval_distance_metrics, mean_pert=self.mean_pert,iter=self.iter), data_list)
-
+            res = p.starmap(self.process_data_real, data_list)
         # some cuisine to produce a rightly formatted dictionary
+        print(res)
+        result_dict_list = {dict_idxprog_tuple[1]: dict_idxprog_tuple[0] for dict_idxprog_tuple in res}
+        return result_dict_list
 
-        ind_list = []
-        d_res = defaultdict(list)
+    def process_data_real(self, config, Transformer, datasets, key_prog, metric):
+        N_samples = self.program[key_prog]
+        result = backend.eval_distance_metrics(config, Transformer, metric, {'real0': datasets[key_prog][0], 'real1': datasets[key_prog][1]}, N_samples, N_samples, self.VI, self.VI, self.CI, key_prog)
+        return result
 
-        for res_index in res:
-            index = res_index[1]
-            res0 = res_index[0]
-            for k, v in res0.items():
-                d_res[k].append(v)
-            ind_list.append(index)
-
-        for k in d_res.keys():
-            d_res[k] = [x for _, x in sorted(zip(ind_list, d_res[k]))]
-
-        res = {k: np.concatenate([np.expand_dims(v[i], axis=0)
-                                  for i in range(len(self.steps))], axis=0).squeeze()
-               for k, v in d_res.items()}
-
-        return res
-
-    def sequentialEstimation_realVSreal(self, metric):
+    def sequentialEstimation_realVSreal(self, metric, detransf=True):
         """
 
         Iterates the evaluation of the metric on each item of pair of real datasets 
@@ -430,7 +411,7 @@ class EnsembleMetricsCalculator(Experiment):
 
         return res
 
-    def parallelEstimation_standAlone(self, metrics_list, option='fake'):
+    def parallelEstimation_standAlone(self, config, metrics_list, option='fake'):
         """
 
         makes a list of datasets with each dataset contained
@@ -448,85 +429,51 @@ class EnsembleMetricsCalculator(Experiment):
 
         Returns :
 
-            res : ndarray, the results array (precise shape defined by the metric)
+            res : ndarray, the results array with shape [index of program]{"metric": [precise shape defined by the metric][variables][crop_size][crop_size]}
 
         """
-        mean_pert = self.mean_pert
-        
-        if option=='real':
-            
-            self.steps =[0]
-            program_stda = {k : (1, v[1]) for k,v in self.program.items()}
-            dataset_r = backend.build_datasets(real_data_dir, program_stda, 
-                                               self.real_dataset_labels,
-                                               fake_prefix = self.fake_prefix) 
-            
-            data_list = [(metrics_list, dataset_r, self.program[i][1], 
-                          self.VI, self.VI, self.CI, i, option) \
-                        for i, dataset in enumerate(dataset_r)]
+        print(f"PARALLEL ESTIMATION STANDALONE {option}")
+        RES = {}
+        crop_size = (self.CI[1] - self.CI[0], self.CI[3] - self.CI[2])
+        Transformer = backend.Transform(config, crop_size)
+        if option == 'real':
+            print("Multicomputing on programms")
+            dataset_real_dict = backend.build_real_datasets(real_data_dir, self.program)
+            data_list = [(config, Transformer, metrics_list, dataset, self.program[program_idx], self.VI, self.VI, self.CI, program_idx, option) for program_idx, dataset in dataset_real_dict.items()]
             
             with Pool(num_proc) as p :
-            
-                res = p.map(partial(backend.global_dataset_eval, iter=self.iter), data_list)
-
-            ind_list = []
-            d_res = defaultdict(list)
-
-            for res_index in res:
-                index = res_index[1]
-                res0 = res_index[0]
-                for k, v in res0.items():
-                    d_res[k].append(v)
-                ind_list.append(index)
-
-            for k in d_res.keys():
-                d_res[k] = [x for _, x in sorted(zip(ind_list, d_res[k]))]
-
-            res = {k: np.concatenate([np.expand_dims(v[i], axis=0)
-                                      for i in range(len(self.steps))], axis=0).squeeze()
-                   for k, v in d_res.items()}
-
-            return res
+                res = p.map(backend.global_dataset_eval, data_list)
+            result_dict_list = {dict_idx_tuple[1]: dict_idx_tuple[0] for dict_idx_tuple in res}
+            RES = {program_idx: {0: result} for program_idx, result in result_dict_list.items()}
+            print(f"RES.keys(): {RES.keys()}")
+            print(f"RES[0].keys(): {RES[0].keys()}")
+            print(f"RES[0][0].keys(): {RES[0][0].keys()}")
+            return RES
 
         elif option == 'fake':
-
-            RES = {}
-            for i0 in self.program.keys():
-
-                N_samples = self.program[i0][1]
+            for prog_idx in self.program.keys():
+                n_samples = self.program[prog_idx]
                 data_list = []
-
-                for j, step in enumerate(self.steps):
-
+                for step in self.steps:
                     # getting files to analyze from fake dataset
-                    if option == 'fake':
-                        files = glob(self.data_dir_f +
-                                     self.fake_prefix + str(step)+'_*.npy')
+                    files = glob(f"{self.data_dir_f}{self.fake_prefix}{step}_*.npy")
+                    n_samples = check_number_files(files, n_samples)
 
-                        data_list.append((metrics_list, files, N_samples,
-                                          self.VI, self.VI_f, self.CI, step, option))
-
+                    data_list.append((config, Transformer, metrics_list, files, n_samples, self.VI, self.VI_f, self.CI, step, option))
                 with Pool(num_proc) as p:
-                    res = p.map(partial(backend.global_dataset_eval, mean_pert=mean_pert, iter=self.iter), data_list)
-
-                ind_list = []
-                d_res = defaultdict(list)
-
-                for res_index in res:
-                    index = res_index[1]
-                    res0 = res_index[0]
-                    for k, v in res0.items():
-                        d_res[k].append(v)
-                    ind_list.append(index)
-
-                for k in d_res.keys():
-                    d_res[k] = [x for _, x in sorted(zip(ind_list, d_res[k]))]
-
-                res = {k: np.concatenate([np.expand_dims(v[i], axis=0)
-                                          for i in range(len(self.steps))], axis=0).squeeze()
-                       for k, v in d_res.items()}
-
-                RES[i0] = res
-            if i0 == 0:
-                return res
+                    res = p.map(backend.global_dataset_eval, data_list)
+                result_dict_list = {dict_step_tuple[1]: dict_step_tuple[0] for dict_step_tuple in res}
+                RES[prog_idx] = result_dict_list
+            print(f"RES.keys(): {RES.keys()}")
+            print(f"RES[0].keys(): {RES[0].keys()}")
+            print(f"RES[0][0].keys(): {RES[0][0].keys()}")
             return RES
+
+def check_number_files(files, n_samples):
+    Shape = np.load(files[0], mmap_mode='c').shape
+    if Shape[0] * len(files) < n_samples:
+        raise ValueError(f"Not enough fakes to sample, you want {n_samples}, there are only {Shape[0] * len(files)} for files similar (same step) to {files[0]}")
+    if n_samples % Shape[0] != 0:
+        print(f"You provided a sample number {n_samples} that is not a multiple of batch size {Shape[0]}. Defaulting to the nearest smaller multiple : number = {(n_samples // Shape[0]) * Shape[0]}")
+        n_samples = (n_samples // Shape[0]) * Shape[0]
+    return n_samples

@@ -55,6 +55,7 @@ def dct_var(x):
     """
     compute the bidirectional variance spectrum of the (square) numpy array x
     """
+    x = np.array(x, dtype=np.float64)
     N=x.shape[-1]
     
     fx=dct2D(x)

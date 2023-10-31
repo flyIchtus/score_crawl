@@ -8,10 +8,11 @@ Created on Wed Jul 27 09:48:51 2022
 correlation lengths
 
 """
+import warnings
 
-import numpy as np
+warnings.filterwarnings("error")
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 
 def get_metric_tensor(eps, sca):
@@ -92,7 +93,7 @@ def correlation_length(g, sca):
     
     correl = 0.5*(np.trace(np.sqrt(np.abs(g))))
     
-    ls = (1.0/correl)
+    ls = 1.0 / (correl + 1e-6)
     
     return ls
 
@@ -156,13 +157,14 @@ def length_scale(eps, sca = 1.0) :
         ls : array of shape C x H x W
     
     """
-    
-    eps_0 = get_normalized_field(eps)
-    
-    g = get_metric_tensor(eps_0, sca)
-    
-    ls = correlation_length(g, sca)
-    
+    try:
+        eps_0 = get_normalized_field(eps)
+        
+        g = get_metric_tensor(eps_0, sca)
+        
+        ls = correlation_length(g, sca)
+    except RuntimeWarning as runtime_warn:
+        print(f"RUNTIME WARNING: {runtime_warn} ; {np.max(eps)} ; {eps}")
     return ls
 
 def test_correlation_fit():

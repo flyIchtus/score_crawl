@@ -8,37 +8,27 @@ Created on Thu Apr 28 17:11:52 2022
 Metrics Executable
 
 """
-import evaluation_frontend as frontend
 import base_config
+import evaluation_frontend as frontend
 from configurate import getAndNameDirs, select_Config
 
-
 if __name__ == "__main__":
-
+    print(f"CPU used by this programm (MAYBE USED BY OTHER USERS): {base_config.num_proc}")
     configuration_set, N_samples = getAndNameDirs(option='rigid')
 
-    program = {i: (1, N_samples) for i in range(1)}
+    program = {i: N_samples for i in range(base_config.repeat)}
 
-    # distance_metrics_list = ["W1_Center_NUMPY"]
-    distance_metrics_list = ["W1_random_NUMPY", "W1_Center_NUMPY", "SWD_metric_torch"]
-    # # standalone_metrics_list=["spectral_compute", "struct_metric","ls_metric"]
-    # standalone_metrics_list = ["spectral_compute", "ls_metric", "quant_map"]
-
-    #standalone_metrics_list=["spectral_compute","ls_metric","quant_map"]
-    standalone_metrics_list = ["quant_map"]
     num = base_config.num
-    for ind in range(configuration_set.length):
+    for idx in range(configuration_set.length):
+        config = select_Config(configuration_set, idx, option='rigid')
+        ## STANDALONE
+        metrics_str = '_'.join(base_config.standalone_metrics_list)
+        mC = frontend.EnsembleMetricsCalculator(config, add_name=f"{base_config.prefix}_{metrics_str}_{num}")
 
-        expe_config = select_Config(configuration_set, ind, option='rigid')
+        mC.estimation(config, base_config.standalone_metrics_list, program, standalone=True, parallel=True, real=base_config.real)
 
-        mC = frontend.EnsembleMetricsCalculator(
-            expe_config, add_name=f'test_standalone_{num}')
+        ## DISTANCE
+        metrics_str = '_'.join(base_config.distance_metrics_list)
+        mC = frontend.EnsembleMetricsCalculator(config, add_name=f"{base_config.prefix}_{metrics_str}_{num}")
 
-        mC.estimation(standalone_metrics_list, program,
-                      standalone=True, parallel=True, real=False)
-
-        mC = frontend.EnsembleMetricsCalculator(
-            expe_config, add_name=f'test_distance_{num}', )
-
-        mC.estimation(distance_metrics_list, program,
-                      standalone=False, parallel=True, real=False)
+        mC.estimation(config, base_config.distance_metrics_list, program, standalone=False, parallel=True, real=base_config.real)
