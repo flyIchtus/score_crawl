@@ -13,7 +13,7 @@ import evaluation_frontend as frontend
 from configurate import getAndNameDirs, select_Config
 
 if __name__ == "__main__":
-    print(f"CPU used by this programm (MAYBE USED BY OTHER USERS): {base_config.num_proc}")
+    print(f"CPU used by this programm: {base_config.num_proc}")
     configuration_set, N_samples = getAndNameDirs(option='rigid')
 
     program = {i: N_samples for i in range(base_config.repeat)}
@@ -21,14 +21,12 @@ if __name__ == "__main__":
     num = base_config.num
     for idx in range(configuration_set.length):
         config = select_Config(configuration_set, idx, option='rigid')
-        ## STANDALONE
+        # ## STANDALONE
         metrics_str = '_'.join(base_config.standalone_metrics_list)
         mC = frontend.EnsembleMetricsCalculator(config, add_name=f"{base_config.prefix}_{metrics_str}_{num}")
-
         mC.estimation(config, base_config.standalone_metrics_list, program, standalone=True, parallel=True, real=base_config.real)
 
         ## DISTANCE
         metrics_str = '_'.join(base_config.distance_metrics_list)
         mC = frontend.EnsembleMetricsCalculator(config, add_name=f"{base_config.prefix}_{metrics_str}_{num}")
-
         mC.estimation(config, base_config.distance_metrics_list, program, standalone=False, parallel=True, real=base_config.real)

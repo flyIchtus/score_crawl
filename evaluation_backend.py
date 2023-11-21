@@ -72,6 +72,9 @@ class Transform:
         elif normalization_type == "minmax":
             maxs, mins = self.load_stat_files(normalization_type, "max", "min")
             return maxs, mins, None, None
+        elif normalization_type == "quant":
+            maxs, mins = self.load_stat_files(normalization_type, "Q99", "Q01")
+            return maxs, mins, None, None
         else:
             print("No normalization set")
             return None, None, None, None
@@ -114,7 +117,7 @@ class Transform:
                 data = data * self.stds[np.newaxis, :, np.newaxis, np.newaxis] + self.means[np.newaxis, :, np.newaxis, np.newaxis]
             else:
                 data = data * self.stds + self.means
-        elif norm_type == "minmax":
+        elif norm_type == "minmax" or norm_type == "quant":
             if not per_pixel:
                 data = ((data + 1) / 2) * (self.maxs[np.newaxis, :, np.newaxis, np.newaxis] - self.mins[np.newaxis, :, np.newaxis, np.newaxis]) + self.mins[np.newaxis, :, np.newaxis, np.newaxis]
             else:
@@ -208,6 +211,7 @@ class Transform:
 
     def online_sample_plot(self, batch, Step, mean_pert=False):
         bounds = np.array([0, 0.5, 1, 3, 5, 7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 250, 300, 350, 1000])
+        # bounds = np.array([0, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 2, 3, 4, 5, 10, 20, 30, 50, 75, 100])
         norm = colors.BoundaryNorm(boundaries=bounds, ncolors=18)
         cmapRR = colors.ListedColormap(["white", "#63006e", "#0000ff", "#00b2ff", "#00ffff", "#08dfd6", "#1cb8a5", "#6ba530", "#ffff00", "#ffd800", "#ffa500", "#ff0000", "#991407", "#ff00ff", "#a4ff00", "#00fa00", "#31be00", "#31858b"], name="from_list", N=None)
         batch_to_print = batch[:16]

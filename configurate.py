@@ -92,7 +92,6 @@ def getAndNameDirs(option='rigid'):
         parser.add_argument('--list_steps', type=str2list, help='prefix for the real data files', default=[k * 10000 for k in range(13)])
 
         parser.add_argument('--n_samples', type=int, help='Set of experiments to dig in.', default=16384)
-        parser.add_argument('--iter', type=int, default=0, help='iterative transform on fake data')
 
         parser.add_argument('--lr0', type=str2list, help='Set of initial learning rates', default=[0.0002])
         parser.add_argument('--batch_sizes', type=str2list, help='Set of batch sizes experimented', default=[32])
@@ -287,7 +286,6 @@ def select_Config(multi_config, index, option='rigid'):
         config.instance_num = multi_config.instance_num[instance_index]
 
         config.mean_pert = multi_config.mean_pert
-        config.iter = multi_config.iter
 
         config.variables = multi_config.variables[index] if len(multi_config.variables) > 1 else multi_config.variables[0]
         
@@ -316,7 +314,6 @@ def select_Config(multi_config, index, option='rigid'):
         config.instance_num = 1
 
         config.mean_pert = multi_config.mean_pert
-        config.iter = multi_config.iter
 
         config.variables = multi_config.variables[index] if len(multi_config.variables) > 1 else \
                         multi_config.variables[0] 
@@ -333,7 +330,6 @@ def select_Config(multi_config, index, option='rigid'):
 
         config.short_name = multi_config.short_names[index]
         config.mean_pert = multi_config.mean_pert
-        config.iter = multi_config.iter
 
         config.lr0 = 0
         config.batch = 0
@@ -371,7 +367,6 @@ class Experiment():
         self.steps = expe_config.steps
         self.instance_num = expe_config.instance_num
         self.mean_pert = expe_config.mean_pert
-        self.iter = expe_config.iter
         self.fake_prefix = expe_config.fake_prefix
         self.real_dataset_labels = expe_config.real_dataset_labels
         

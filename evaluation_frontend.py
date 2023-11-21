@@ -126,7 +126,7 @@ class EnsembleMetricsCalculator(Experiment):
         N_samples_name = '_'.join([str(n) for n in N_samples_set])
 
         if not real:
-            N_samples_name = f"step_{'_'.join([str(s) for s in self.steps])}_{N_samples_name}"
+            N_samples_name = f"step_{self.steps[0]}_{self.steps[-1]}_{N_samples_name}"
         else:
             N_samples_name = f"{'_'.join([var for var in self.var_names])}_dom_{self.dom_size}_{N_samples_name}"
         dumpfile = f"{self.log_dir}{self.add_name}{name}{N_samples_name}.p"
@@ -162,14 +162,14 @@ class EnsembleMetricsCalculator(Experiment):
         Transformer = backend.Transform(config, crop_size)
         if len(self.steps) > len(self.program):
             for prog_idx in self.program.keys():
-                data_list = [(config, Transformer, prog_idx, step, metrics_list) for step in self.steps]
+                data_list = [(config, Transformer, prog_idx, step, metrics_list, self.steps) for step in self.steps]
                 with Pool(num_proc) as p :
                     res = p.starmap(self.process_data, data_list)
                 result_dict_list = {dict_step_tuple[1]: dict_step_tuple[0] for dict_step_tuple in res}
                 RES[prog_idx] = result_dict_list
         else:
             for step in self.steps:
-                data_list = [(config, Transformer, prog_idx, step, metrics_list, False) for prog_idx in self.program.keys()]
+                data_list = [(config, Transformer, prog_idx, step, metrics_list, self.steps, False) for prog_idx in self.program.keys()]
                 with Pool(num_proc) as p :
                     res = p.starmap(self.process_data, data_list)
                 result_dict_list = {dict_step_tuple[1]: dict_step_tuple[0] for dict_step_tuple in res}
@@ -186,11 +186,11 @@ class EnsembleMetricsCalculator(Experiment):
         print(f"RES[0][0].keys(): {RES[0][0].keys()}")
         return RES
     
-    def process_data(self, config, Transformer, prog_idx, step, metrics_list, parallel_on_steps = True):
+    def process_data(self, config, Transformer, prog_idx, step, metrics_list, steps, parallel_on_steps = True):
             dataset_r = backend.build_real_datasets(real_data_dir, self.program)[prog_idx]
             files = glob(os.path.join(self.data_dir_f,f"{self.fake_prefix}{step}_*.npy"))
             N_samples = self.program[prog_idx]
-            N_samples = check_number_files(files, N_samples)
+            N_samples = check_number_files(files, N_samples, step, steps)
             result = backend.eval_distance_metrics(config, Transformer, metrics_list, {'real': dataset_r, 'fake': files}, N_samples, N_samples, self.VI, self.VI_f, self.CI, step)
             if parallel_on_steps:
                 return result
@@ -457,7 +457,7 @@ class EnsembleMetricsCalculator(Experiment):
                 for step in self.steps:
                     # getting files to analyze from fake dataset
                     files = glob(f"{self.data_dir_f}{self.fake_prefix}{step}_*.npy")
-                    n_samples = check_number_files(files, n_samples)
+                    n_samples = check_number_files(files, n_samples, step, self.steps)
 
                     data_list.append((config, Transformer, metrics_list, files, n_samples, self.VI, self.VI_f, self.CI, step, option))
                 with Pool(num_proc) as p:
@@ -469,7 +469,9 @@ class EnsembleMetricsCalculator(Experiment):
             print(f"RES[0][0].keys(): {RES[0][0].keys()}")
             return RES
 
-def check_number_files(files, n_samples):
+def check_number_files(files, n_samples, step, steps):
+    if len(files) < 128:
+        raise FileNotFoundError(f'Not enough files, it is likely that the step {step} has not been generated. If generation is active and with the good parameters, there are {len(files) % 128}/128 files for step {step}/{steps[-1]}')
     Shape = np.load(files[0], mmap_mode='c').shape
     if Shape[0] * len(files) < n_samples:
         raise ValueError(f"Not enough fakes to sample, you want {n_samples}, there are only {Shape[0] * len(files)} for files similar (same step) to {files[0]}")

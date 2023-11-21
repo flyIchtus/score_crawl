@@ -10,25 +10,68 @@ from argparse import ArgumentParser
 import matplotlib
 import numpy as np
 import torch
+import yaml
 
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
+def str2list(li):
+    if type(li)==list:
+        li2 = li
+        return li2
+    
+    elif type(li)==str:
+        li2=li[1:-1].split(',')
+        return li2
+    
+    else:
+        raise ValueError("li argument must be a string or a list, not '{}'".format(type(li)))
+
+def str2intlist(li):
+    if type(li)==list:
+        li2 = [int(p) for p in li]
+        return li2
+    
+    elif type(li)==str:
+        li2 = li[1:-1].split(',')
+        li3 = [int(p) for p in li2]
+        return li3
+
+    else : 
+        raise ValueError("li argument must be a string or a list, not '{}'".format(type(li)))
+
+def str2inttuple(li):
+    if type(li)==list:
+        li2 =[int(p) for p in li]  
+        return tuple(li2)
+    
+    elif type(li)==str:
+        li2 = li[1:-1].split(',')
+        li3 =[int(p) for p in li2]
+
+        return tuple(li3)
+
+    else : 
+        raise ValueError("li argument must be a string or a list, not '{}'".format(type(li)))
+
 parser = ArgumentParser()
 
 parser.add_argument("set", type=int, help="Set number")
-parser.add_argument("config", type=str, help="config file")
 parser.add_argument("--start", type=int, default=0, help="Starting checkpoint")
 parser.add_argument("--stop", type=int, default=100000, help="Stopping checkpoint")
 parser.add_argument("--step", type=int, default=10000, help="Step between checkpoints")
-
+parser.add_argument("--n_samples", type=int, default=4096, help="Number of samples of statistics")
 parser.add_argument("-i", "--instances", default=[1], type=int, nargs="*", help="Instance number in Set")
+
 args = parser.parse_args()
 
 set_number = args.set
 instance_number_list = args.instances
 
-with open(args.config_file, 'r') as main_config_yaml:
+n_samples = args.n_samples
+
+config_file = os.path.join("/home", "gmap", "mrmn", "gandonb", "SAVE", "styleganPNRIA", "gan", "configs", f"Set_{args.set}", "main_256.yaml")
+with open(config_file, 'r') as main_config_yaml:
     config = yaml.safe_load(main_config_yaml)
 
 lat_dim = config["ensemble"]["--latent_dim"][0]
@@ -41,19 +84,20 @@ var_names = str2list(config["ensemble"]["--var_names"][0])
 tanh_output = config["ensemble"]["--tanh_output"][0]
 
 var_names = ["rr", "u", "v", "t2m"]
-path = os.path.join("scratch", "work", "gandonb", "Exp_StyleGAN", f"Set_{set_number}", f"stylegan2_stylegan_dom_{size}_lat-dim_{lat_dim}_bs_{bs}_{lr_D}_{lr_G}_ch-mul_2_vars_{'_'.join(str(var_name) for var_name in var_names)}_noise_{use_noise}")
-outpath = os.path.join("scratch", "work", "gandonb", "Presentable", "plot_metric")
+path = os.path.join("/scratch", "work", "gandonb", "Exp_StyleGAN", f"Set_{set_number}", f"stylegan2_stylegan_dom_{size}_lat-dim_{lat_dim}_bs_{bs}_{lr_D}_{lr_G}_ch-mul_2_vars_{'_'.join(str(var_name) for var_name in var_names)}_noise_{use_noise}")
+outpath = os.path.join("/scratch", "work", "gandonb", "Presentable", "plot_metric")
 
-prefix = f"METR_clip"
+prefix = f"METR"
 # prefix = f"AROME_PHY"
 arome = False
 # arome = True
 
 standalone_metrics_list = ["spectral_compute", "ls_metric", "quant_map"]
+# standalone_metrics_list = ["quant_map"]
 # standalone_metrics_list = ["spectral_compute"]
+# standalone_metrics_list = []
 distance_metrics_list = ["W1_random_NUMPY", "W1_Center_NUMPY", "SWD_metric_torch"]
-
-n_samples = 4096
+# distance_metrics_list = ["W1_random_NUMPY", "W1_Center_NUMPY"]
 
 if arome:
     steps_list = [0]
@@ -64,7 +108,7 @@ else:
 standalone_metrics_str = '_'.join(standalone_metrics_list)
 distance_metrics_str = '_'.join(distance_metrics_list)
 
-steps_str = "_".join(map(str, steps_list))
+steps_str = f"{steps_list[0]}_{steps_list[-1]}"
 
 if arome:
     filename_standalone = f"{prefix}_{standalone_metrics_str}_1_standalone_metrics_rr_u_v_t2m_dom_256{f'_{n_samples}' * 10}.p"
@@ -78,9 +122,10 @@ def quantile_map(set_number, instance_entry_list, path, outpath, filename_standa
     # Define the quantile values and their corresponding vmin, vmax ranges
     v_dict = {
         0.01: {"rr": (-0.1, 0.1), "u": (-20, 3), "v": (-20, 3), "t2m": (250, 285)},
-        0.1: {"rr": (-0.1, 0.5), "u": (-10, 3), "v": (-15, 3), "t2m": (255, 295)},
+        0.1: {"rr": (-0.1, 0.1), "u": (-10, 3), "v": (-15, 3), "t2m": (255, 295)},
+        0.75: {"rr": (0, 0.016), "u": (0, 8), "v": (-0.5, 4.5), "t2m": (270, 300)},
         0.9: {"rr": (-0.1, 0.5), "u": (0, 15), "v": (0, 10), "t2m": (275, 305)},
-        0.99: {"rr": (0, 10), "u": (0, 20), "v": (0, 15), "t2m": (280, 310)},
+        0.99: {"rr": (0, 6), "u": (0, 20), "v": (0, 15), "t2m": (280, 310)},
     }
     
     for instance_entry in instance_entry_list:

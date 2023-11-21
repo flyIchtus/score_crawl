@@ -233,7 +233,7 @@ ls_dist = metric2D('Correlation length RMSE', lambda real, fake : ls.length_scal
 
 # quantile scores
 
-qlist = [0.01,0.1,0.9,0.99]
+qlist = [0.01, 0.1, 0.75, 0.9, 0.99]
 
 quant_metric = metric2D('Quantiles RMSE score', lambda real, fake : quant.quantile_score(real, fake, qlist = qlist), \
                           vars_wo_orog)

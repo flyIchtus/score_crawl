@@ -10,9 +10,9 @@ Created on Thu Jul 20 10:23:17 2023
 import os
 
 num_proc = os.cpu_count()
-num_proc = 4
+num_proc = 1
 
-prefix = "METR_clip"
+prefix = "METR"
 
 real = False
 repeat = 1
@@ -43,6 +43,7 @@ standalone_metrics_list = ["spectral_compute", "ls_metric", "quant_map"]
 
 distance_metrics_list = ["W1_random_NUMPY", "W1_Center_NUMPY", "SWD_metric_torch"]
 # distance_metrics_list = ["W1_random_NUMPY", "W1_Center_NUMPY"] # short
+# distance_metrics_list = ["W1_Center_NUMPY"] # short
 # distance_metrics_list = ["SWD_metric_torch"]
 
 

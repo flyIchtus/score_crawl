@@ -37,11 +37,11 @@ class Instance:
 
     def save_order_maps(self, save_dir):
         for order, order_map in enumerate(self.orders_maps_list_):
-            np.save(f"{save_dir}order_{order}.npy", order_map)
+            np.save(os.path.join(save_dir, f"order_{order}.npy"), order_map)
 
     def save_counts(self, save_dir):
         for name, array in self.stats_arrays_count_.items():
-            with open(f"{save_dir}{name}.json", "w", encoding="utf8") as countfile:
+            with open(os.path.join(save_dir, f"{name}.json"), "w", encoding="utf8") as countfile:
                 json_count = json.dumps(array, indent=4)
                 countfile.write(json_count)
 
@@ -51,7 +51,7 @@ class Instance:
             fig, axes = plt.subplots()
             img = axes.imshow(order_map, origin="lower")
             fig.colorbar(img)
-            fig.savefig(f"{save_dir_img}order_{order}.png")
+            fig.savefig(os.path.join(save_dir_img, f"order_{order}.png"))
             plt.close(fig)
         plt.clf()
         keys = np.array(sorted(list(map(float, self.stats_arrays_count_["area_proportion"].keys()))))
@@ -61,7 +61,8 @@ class Instance:
         plt.xlabel("s_rr")
         plt.ylabel("Area proportion (log10)")
         plt.title("Area proportion for precipitation >= s_rr")
-        plt.savefig(f"{save_dir_img}area_proportion.png")
+        plt.savefig(os.path.join(save_dir_img, "area_proportion.png"))
+        print(save_dir_img)
         if len(self.stats_arrays_count_["extracted_values"]):
             keys = sorted(list(map(float, self.stats_arrays_count_["extracted_values"].keys())))
             values = [self.stats_arrays_count_["extracted_values"][str(key)] for key in keys]
@@ -74,19 +75,19 @@ class Instance:
         plt.clf()
         plt.hist(x=keys, weights=values, density=True, bins=(v_max-v_min) * 2, range=(v_min, v_max))
         plt.xlabel("rr")
-        plt.savefig(f"{save_dir_img}extracted_values_{v_min}_{v_max}.png")
+        plt.savefig(os.path.join(save_dir_img, f"extracted_values_{v_min}_{v_max}.png"))
 
     def save_patch(self, gigafile_name, verbose_level, args):
         if args.verbose >= verbose_level:
             print(f"{os.getpid()} -> Saving stats for {self.set_number_}")
-        save_dir = f"{save_path}~Set_{self.set_number_}/step_{self.step_}/~stats/{gigafile_name[:-4]}/"
+        save_dir = os.path.join(save_path, f"~Set_{self.set_number_}", f"step_{self.step_}", "~stats", f"{gigafile_name[:-4]}")
         make_save_dir(save_dir, args)
 
         self.save_order_maps(save_dir)
         self.save_counts(save_dir)
 
         json_numbers = json.dumps(self.stats_numbers_dict_, indent=4)
-        with open(f"{save_dir}log.json", "w", encoding="utf8") as logfile:
+        with open(os.path.join(save_dir, "log.json"), "w", encoding="utf8") as logfile:
             logfile.write(json_numbers)
     
     def compute_numbers(self):
@@ -96,8 +97,8 @@ class Instance:
     def save(self, verbose_level, args):
         if args.verbose >= verbose_level:
             print(f"Saving stats for {self.set_number_}")
-        save_dir = f"{save_path}~Set_{self.set_number_}/step_{self.step_}/~stats/"
-        save_dir_img = f"{save_dir}pictures/"
+        save_dir = os.path.join(save_path, f"~Set_{self.set_number_}", f"step_{self.step_}", "~stats")
+        save_dir_img = os.path.join(save_dir, "pictures")
         make_save_dir(save_dir_img, args)
 
         self.save_order_maps(save_dir)
@@ -105,20 +106,20 @@ class Instance:
         self.save_plots(save_dir_img)
 
         json_numbers = json.dumps(self.stats_numbers_dict_, indent=4)
-        with open(f"{save_dir}log.json", "w", encoding="utf8") as logfile:
+        with open(os.path.join(save_dir, "log.json"), "w", encoding="utf8") as logfile:
             logfile.write(json_numbers)
 
     def update_stats(self, data_path, gigafile):
-        data_dir = f"{data_path}{gigafile.name[:-4]}/"
-        with open(f"{data_dir}log.json") as logfile:
+        data_dir = os.path.join(data_path, gigafile.name[:-4])
+        with open(os.path.join(data_dir, "log.json")) as logfile:
             stats_number_dict = json.load(logfile)
             for name in ["n_files", "n_files_no_rain", "n_files_greater_than_1mm", "n_files_greater_than_5mm"]:
                 self.stats_numbers_dict_[name] += stats_number_dict[name]
           
     def update_order_map(self, gigafile_set, data_path, order, order_map):
         for gigafile in gigafile_set:
-            data_dir = f"{data_path}{gigafile.name[:-4]}/"
-            order_map_patch = np.load(f"{data_dir}order_{order}.npy")
+            data_dir = os.path.join(data_path, gigafile.name[:-4])
+            order_map_patch = np.load(os.path.join(data_dir, f"order_{order}.npy"))
             order_map += order_map_patch
         order_map /= self.stats_numbers_dict_["n_files"]
         self.orders_maps_list_[order] = order_map
@@ -126,13 +127,13 @@ class Instance:
     def update_stats_arrays(self, data_path, gigafile_set):
         for name in self.stats_arrays_count_:
             for gigafile in gigafile_set:
-                data_dir = f"{data_path}{gigafile.name[:-4]}/"
-                with open(f"{data_dir}{name}.json") as countfile:
+                data_dir = os.path.join(data_path, gigafile.name[:-4])
+                with open(os.path.join(data_dir, f"{name}.json")) as countfile:
                     self.stats_arrays_count_[name].update(json.load(countfile))
         self.stats_arrays_count_["area_proportion"] = {float(key): value / (self.stats_numbers_dict_["n_files"] * self.gridsize_) for key, value in self.stats_arrays_count_["area_proportion"].items()}
 
     def cleanup_gigafiles_stats(self):
-        for gigafile_stats in os.scandir(f"{save_path}~Set_{self.set_number_}/step_{self.step_}/~stats/"):
+        for gigafile_stats in os.scandir(os.path.join(save_path, f"~Set_{self.set_number_}", f"step_{self.step_}", "~stats")):
             shutil.rmtree(gigafile_stats.path)
 
 
@@ -148,11 +149,11 @@ class Parameter:
 
     def save_order_maps(self, save_dir):
         for order, order_map in enumerate(self.orders_maps_list_):
-            np.save(f"{save_dir}order_{order}.npy", order_map)
+            np.save(os.path.join(save_dir, f"order_{order}.npy"), order_map)
 
     def save_counts(self, save_dir):
         for name, array in self.stats_arrays_count_.items():
-            with open(f"{save_dir}{name}.json", "w", encoding="utf8") as countfile:
+            with open(os.path.join(save_dir, f"{name}.json"), "w", encoding="utf8") as countfile:
                 json_count = json.dumps(array, indent=4)
                 countfile.write(json_count)
 
@@ -162,7 +163,7 @@ class Parameter:
             fig, axes = plt.subplots()
             img = axes.imshow(order_map, origin="lower")
             fig.colorbar(img)
-            fig.savefig(f"{save_dir_img}order_{order}.png")
+            fig.savefig(os.path.join(save_dir_img, f"order_{order}.png"))
             plt.close(fig)
         plt.clf()
         keys = np.array(sorted(list(map(float, self.stats_arrays_count_["area_proportion"].keys()))))
@@ -172,7 +173,7 @@ class Parameter:
         plt.xlabel("s_rr")
         plt.ylabel("Area proportion (log10)")
         plt.title("Area proportion for precipitation >= s_rr")
-        plt.savefig(f"{save_dir_img}area_proportion.png")
+        plt.savefig(os.path.join(save_dir_img, f"area_proportion.png"))
         if len(self.stats_arrays_count_["extracted_values"]):
             keys = sorted(list(map(float, self.stats_arrays_count_["extracted_values"].keys())))
             values = [self.stats_arrays_count_["extracted_values"][str(key)] for key in keys]
@@ -188,24 +189,24 @@ class Parameter:
     def sns_plot(self, keys, values, v_min, v_max, save_dir_img):
         plt.clf()
         plt.hist(x=keys, weights=values, density=True, bins=(v_max-v_min) * 2, range=(v_min, v_max))
-        plt.savefig(f"{save_dir_img}extracted_values_{v_min}_{v_max}.png")
+        plt.savefig(os.path.join(save_dir_img, f"extracted_values_{v_min}_{v_max}.png"))
 
     def save(self, verbose_level, args):
         if args.verbose >= verbose_level:
             print(f"Saving stats global")
-        save_dir = f"{save_path}~Set_{self.set_number_}/step_{self.step_}/~stats/"
-        save_dir_img = f"{save_dir}pictures/"
+        save_dir = os.path.join(save_path, f"~Set_{self.set_number_}", f"step_{self.step_}", "~stats")
+        save_dir_img = os.path.join(save_dir, "pictures")
         make_save_dir(save_dir_img, args)
 
         self.save_order_maps(save_dir)
         self.save_counts(save_dir)
         self.save_plots(save_dir_img)
         json_numbers = json.dumps(self.stats_numbers_dict_, indent=4)
-        with open(f"{save_dir}log.json", "w", encoding="utf8") as logfile:
+        with open(os.path.join(save_dir, "log.json"), "w", encoding="utf8") as logfile:
             logfile.write(json_numbers)
     
     def update(self, instance):
-        data_dir = f"{save_path}~Set_{instance.set_number_}/step_{instance.step_}/~stats/"
+        data_dir = os.path.join(save_path, f"~Set_{instance.set_number_}", f"step_{instance.step_}", "~stats")
         self.update_stats(data_dir)
         for order, order_map in enumerate(self.orders_maps_list_):
             self.update_order_map(instance, order, order_map)
@@ -213,7 +214,7 @@ class Parameter:
         self.divide()
 
     def update_stats(self, data_dir):
-        with open(f"{data_dir}log.json") as logfile:
+        with open(os.path.join(data_dir, "log.json")) as logfile:
             stats_number_dict = json.load(logfile)
             exclusion_list = ["ratio_n_files_no_rain_over_n_files_total", "ratio_n_files_greater_than_1mm_over_n_files_total", "ratio_n_files_greater_than_5mm_over_n_files_total"]
             for name in self.stats_numbers_dict_:
@@ -221,15 +222,15 @@ class Parameter:
                     self.stats_numbers_dict_[name] += stats_number_dict[name]
 
     def update_order_map(self, instance, order, order_map):
-        data_dir = f"{save_path}~Set_{instance.set_number_}/step_{instance.step_}/~stats/"
-        order_map_patch = np.load(f"{data_dir}order_{order}.npy")
+        data_dir = os.path.join(save_path, f"~Set_{instance.set_number_}", f"step_{instance.step_}", "~stats")
+        order_map_patch = np.load(os.path.join(data_dir, f"order_{order}.npy"))
         order_map += order_map_patch
         self.orders_maps_list_[order] = order_map
     
     def update_stats_arrays(self, instance):
         for name in self.stats_arrays_count_:
-            data_dir = f"{save_path}~Set_{instance.set_number_}/step_{instance.step_}/~stats/"
-            with open(f"{data_dir}{name}.json") as countfile:
+            data_dir = os.path.join(save_path, f"~Set_{instance.set_number_}", f"step_{instance.step_}", "~stats")
+            with open(os.path.join(data_dir, f"{name}.json")) as countfile:
                 self.stats_arrays_count_[name].update(json.load(countfile))
     
 
@@ -261,7 +262,7 @@ def run_stat(_Fsample_dir, set_number, step, variable, config, gridshape, args):
     instance = Instance(set_number, step, gridshape)
 
     compute_stats_over_all_patches(instance, gigafiles_set, args)
-    data_dir = f"{save_path}~Set_{instance.set_number_}/step_{instance.step_}/~stats/"
+    data_dir = os.path.join(save_path, f"~Set_{instance.set_number_}", f"step_{instance.step_}", "~stats")
     global_stats(instance, data_dir, gridshape, args)
 
 def global_stats(instance, data_dir, gridshape, args):
@@ -274,7 +275,7 @@ def process_gigafile(gigafile_name, gigafile_path, set_number, step, variable, T
     instance = initialize_instance(set_number, step, gridshape)
 
     print(f"{os.getpid()} -> Loading {gigafile_name}")
-    l_grid = np.load(f"{gigafile_path}")
+    l_grid = np.load(gigafile_path)
 
     l_grid = Transformer.detransform(l_grid, step)
     l_grid[:, 0] = np.clip(l_grid[:, 0], a_min=None, a_max=350)
@@ -330,7 +331,7 @@ def process_instance(instance, gigafile_name, l_grid, variable, gridshape, args)
                 instance.stats_numbers_dict_["n_files_greater_than_5mm"] += 1
 
 def compute_stats_over_all_patches(instance, gigafile_set, args):
-    data_path = f"{save_path}~Set_{instance.set_number_}/step_{instance.step_}/~stats/"
+    data_path = os.path.join(save_path, f"~Set_{instance.set_number_}", f"step_{instance.step_}", "~stats")
     for gigafile in gigafile_set:
         instance.update_stats(data_path, gigafile)
 
@@ -453,6 +454,9 @@ class Transform:
         elif normalization_type == "minmax":
             maxs, mins = self.load_stat_files(normalization_type, "max", "min")
             return maxs, mins, None, None
+        elif normalization_type == "quant":
+            maxs, mins = self.load_stat_files(normalization_type, "Q99", "Q01")
+            return maxs, mins, None, None
         else:
             print("No normalization set")
             return None, None, None, None
@@ -495,7 +499,7 @@ class Transform:
                 data = data * self.stds[np.newaxis, :, np.newaxis, np.newaxis] + self.means[np.newaxis, :, np.newaxis, np.newaxis]
             else:
                 data = data * self.stds + self.means
-        elif norm_type == "minmax":
+        elif norm_type == "minmax" or norm_type == "quant":
             if not per_pixel:
                 data = ((data + 1) / 2) * (self.maxs[np.newaxis, :, np.newaxis, np.newaxis] - self.mins[np.newaxis, :, np.newaxis, np.newaxis]) + self.mins[np.newaxis, :, np.newaxis, np.newaxis]
             else:
@@ -510,7 +514,7 @@ class Transform:
         if rr_transform["gaussian_std"] > 0:
             mask_no_rr = data[:, 0] > rr_transform["gaussian_std"] * (1 + 0.25)
             data[:, 0] *= mask_no_rr
-        print("Detransform OK.")
+        # print("Detransform OK.")
         return data
     
     def print_data_detransf(self, data, step):
@@ -584,99 +588,157 @@ class Transform:
 
                 plt.savefig(f"{save_dir}Samples_at_Step_{Step}_{var}{'_mean' if mean_pert else ''}.png")
                 plt.close()
-        
-if __name__ == "__main__":
-    ## ARGPARSE ##
-    parser = ArgumentParser()
-    parser.add_argument("-r", "--refresh", type=int, default=25, help="Progress is shown 'refresh' times")
-    parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity")
-    parser.add_argument("--n_instances", type=int, default=50, help="Number of instances")
-    parser.add_argument("-t", "--threshold", type=float, default=10, help="Threshold for stats")
-    parser.add_argument("-s", "--set", default=1, type=int, help="Set number")
 
-    args = parser.parse_args()
-
-    max_workers = 15
-
-    set_number = args.set
-    dir_string = "stylegan2_stylegan_dom_256_lat-dim_512_bs_2_0.002_0.002_ch-mul_2_vars_rr_u_v_t2m_noise_True"
-    instance_number = 1
-    _Fsample_dir = f"/scratch/work/gandonb/Exp_StyleGAN/Set_{set_number}/{dir_string}/Instance_{instance_number}/samples/"
-    data_min_max = "/scratch/work/gandonb/data/cropped_120_376_540_796/"
-    save_path = "/scratch/work/gandonb/making_stats/"
-    config = Namespace()
-    config.data_transform_config_filename = f"/home/gmap/mrmn/gandonb/SAVE/styleganPNRIA_ddp/styleganPNRIA/gan/configs/Set_{args.set}/dataset_handler_config.yaml"
-    with open(config.data_transform_config_filename, "r") as data_transform_config_file: 
-        data_transform_config_yaml = yaml.safe_load(data_transform_config_file)
-    data_transform_config = data_transform_config_yaml
-    config.data_transform_config = data_transform_config
-    steps_list = [100000]
-    gridshape = (256, 256)
+def str2list(li):
+    if type(li)==list:
+        li2 = li
+        return li2
     
-    for step in steps_list:
-        print(f"Step {step}")
-        run_stat(_Fsample_dir, set_number, step, 0, config, gridshape, args)
-    #### STATS ON SOURCE ####
-    # ## PATH ##
-    # DATA_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/cropped_giga/"
-    # SAVE_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/analysis/source/"
-    # make_save_dir(SAVE_DIR, args)
-
-    # stat_on_source(DATA_DIR, SAVE_DIR, args)
-
-    #### COMPUTE AREA ####
-    ## PATH ## 
-    # DATA_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/data_for_importance_sampling/pre_proc_11-08/cropped_120_376_540_796_giga/"
-    # l_thresholds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 30]
-    # l_mean = compute_area_greater_than(0, DATA_DIR, [256, 256], l_thresholds, args)
-    # print(l_mean)
-    # np.save(f"{DATA_DIR}area_proportions.npy", l_mean)
-    # l_mean = np.load(f"{DATA_DIR}area_proportions.npy")
-    # plt.plot(l_thresholds, l_mean)
-    # plt.yscale("log")
-    # plt.xlabel("s_rr")
-    # plt.ylabel("Area proportion (log10)")
-    # plt.title("Area proportion for precipitation >= s_rr")
-    # plt.savefig(f"{DATA_DIR}area_proportionslog10.png")
-    # plt.clf()
-    # plt.plot(l_thresholds, l_mean)
-    # plt.xlabel("s_rr")
-    # plt.ylabel("Area proportion (log10)")
-    # plt.title("Area proportion for precipitation >= s_rr")
-    # plt.savefig(f"{DATA_DIR}area_proportions.png")
-
-
-
-
-    # GIGA_DIRS = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/pre_proc_31-07-10h/cropped_giga/test/"
-    # DATA_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/importance_sampling/"
-    # DIRS = (GIGA_DIRS, DATA_DIR)
-    # variable = 0
-    # run_stat(DIRS, 0, [256, 256], args)
-    # compute_stats_on_every_session(DATA_DIR, CSV_DIR, variable, args)
-
-
-    #### VERIFY SPLIT ####
-    # ## PATH ##
-    # RAW_DATA_DIR = "/cnrm/recyf/NO_SAVE/Data/users/brochetc/float32_t2m_u_v_rr/"
-    # DATA_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/pre_proc_31-07-10h/cropped_giga/"
-    # SAVE_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/pre_proc_31-07-10h/draft/"
+    elif type(li)==str:
+        li2=li[1:-1].split(',')
+        return li2
     
-    # GRID_NUM = 0
-    # VMAX = 0.02
-    # make_save_dir(SAVE_DIR, args)
-    # l_grid = np.load(DATA_DIR + str(1) + ".npy", allow_pickle=True)
-    # fig, axes = plt.subplots()
-    # img = axes.imshow(l_grid[GRID_NUM][0], origin="lower", vmin=0, vmax=VMAX)
-    # fig.colorbar(img)
-    # fig.savefig(SAVE_DIR + "rr.png")
-    # dataframe = pd.read_csv(DATA_DIR + "labels.csv")
-    # row = dataframe.iloc[GRID_NUM]
-    # orig_grid = np.load(RAW_DATA_DIR + row["Date"] + "_rrlt1-24.npy", allow_pickle=True)
-    # fig, axes = plt.subplots()
-    # img = axes.imshow(orig_grid[:, :, int(row["Leadtime"])-1, int(row["Member"])-1], origin="lower", vmin=0, vmax=VMAX)
-    # fig.colorbar(img)
-    # fig.savefig(SAVE_DIR + "rr_orig.png")
+    else:
+        raise ValueError("li argument must be a string or a list, not '{}'".format(type(li)))
+
+def str2intlist(li):
+    if type(li)==list:
+        li2 = [int(p) for p in li]
+        return li2
     
+    elif type(li)==str:
+        li2 = li[1:-1].split(',')
+        li3 = [int(p) for p in li2]
+        return li3
+
+    else : 
+        raise ValueError("li argument must be a string or a list, not '{}'".format(type(li)))
+
+def str2inttuple(li):
+    if type(li)==list:
+        li2 =[int(p) for p in li]  
+        return tuple(li2)
+    
+    elif type(li)==str:
+        li2 = li[1:-1].split(',')
+        li3 =[int(p) for p in li2]
+
+        return tuple(li3)
+
+    else : 
+        raise ValueError("li argument must be a string or a list, not '{}'".format(type(li)))
+
+parser = ArgumentParser()
+
+parser.add_argument("set", type=int, help="Set number")
+parser.add_argument("start", type=int, help="Beginning step")
+parser.add_argument("stop", type=int, help="Stopping step")
+parser.add_argument("space", type=int, help="Space between step")
+parser.add_argument("-i", "--instances", default=[1], type=int, nargs="*", help="Instance number in Set")
+
+parser.add_argument("-r", "--refresh", type=int, default=25, help="Progress is shown 'refresh' times")
+parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity")
+parser.add_argument("-t", "--threshold", type=float, default=0.1, help="Threshold for stats")
+
+args = parser.parse_args()
+
+config_path = os.path.join("/home", "gmap", "mrmn", "gandonb", "SAVE", "styleganPNRIA", "gan", "configs", f"Set_{args.set}")
+config_file = os.path.join(config_path, "main_256.yaml")
+with open(config_file, 'r') as main_config_yaml:
+    config = yaml.safe_load(main_config_yaml)
+
+lat_dim = config["ensemble"]["--latent_dim"][0]
+bs = config["ensemble"]["--batch_size"][0]
+lr_G = config["ensemble"]["--lr_G"][0]
+lr_D = config["ensemble"]["--lr_D"][0]
+size = str2inttuple(config["ensemble"]["--crop_indexes"][0])[1] - str2inttuple(config["ensemble"]["--crop_indexes"][0])[0]
+use_noise = config["ensemble"]["--use_noise"][0]
+var_names = str2list(config["ensemble"]["--var_names"][0])
+tanh_output = config["ensemble"]["--tanh_output"][0]
+
+
+max_workers = 15
+
+set_number = args.set
+dir_string = f"stylegan2_stylegan_dom_{size}_lat-dim_{lat_dim}_bs_{bs}_{lr_D}_{lr_G}_ch-mul_2_vars_{'_'.join(str(var_name) for var_name in var_names)}_noise_{use_noise}"
+instance_number = 1
+_Fsample_dir = os.path.join("/scratch", "work", "gandonb", "Exp_StyleGAN", f"Set_{set_number}", dir_string, f"Instance_{instance_number}", "samples")
+data_min_max = config["data_dir"]
+save_path = os.path.join("/scratch", "work", "gandonb", "making_stats")
+config_d = Namespace()
+config_d.data_transform_config_filename = os.path.join(config_path, config["ensemble"]["--dataset_handler_config"][0])
+with open(config_d.data_transform_config_filename, "r") as data_transform_config_file: 
+    data_transform_config_yaml = yaml.safe_load(data_transform_config_file)
+data_transform_config = data_transform_config_yaml
+config_d.data_transform_config = data_transform_config
+gridshape = (size, size)
+
+steps_list = [k for k in range(args.start, args.stop + 1, args.space)]
+
+for step in steps_list:
+    print(f"Step {step}")
+    run_stat(_Fsample_dir, set_number, step, 0, config_d, gridshape, args)
+#### STATS ON SOURCE ####
+# ## PATH ##
+# DATA_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/cropped_giga/"
+# SAVE_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/analysis/source/"
+# make_save_dir(SAVE_DIR, args)
+
+# stat_on_source(DATA_DIR, SAVE_DIR, args)
+
+#### COMPUTE AREA ####
+## PATH ## 
+# DATA_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/data_for_importance_sampling/pre_proc_11-08/cropped_120_376_540_796_giga/"
+# l_thresholds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 30]
+# l_mean = compute_area_greater_than(0, DATA_DIR, [256, 256], l_thresholds, args)
+# print(l_mean)
+# np.save(f"{DATA_DIR}area_proportions.npy", l_mean)
+# l_mean = np.load(f"{DATA_DIR}area_proportions.npy")
+# plt.plot(l_thresholds, l_mean)
+# plt.yscale("log")
+# plt.xlabel("s_rr")
+# plt.ylabel("Area proportion (log10)")
+# plt.title("Area proportion for precipitation >= s_rr")
+# plt.savefig(f"{DATA_DIR}area_proportionslog10.png")
+# plt.clf()
+# plt.plot(l_thresholds, l_mean)
+# plt.xlabel("s_rr")
+# plt.ylabel("Area proportion (log10)")
+# plt.title("Area proportion for precipitation >= s_rr")
+# plt.savefig(f"{DATA_DIR}area_proportions.png")
+
+
+
+
+# GIGA_DIRS = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/pre_proc_31-07-10h/cropped_giga/test/"
+# DATA_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/importance_sampling/"
+# DIRS = (GIGA_DIRS, DATA_DIR)
+# variable = 0
+# run_stat(DIRS, 0, [256, 256], args)
+# compute_stats_on_every_session(DATA_DIR, CSV_DIR, variable, args)
+
+
+#### VERIFY SPLIT ####
+# ## PATH ##
+# RAW_DATA_DIR = "/cnrm/recyf/NO_SAVE/Data/users/brochetc/float32_t2m_u_v_rr/"
+# DATA_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/pre_proc_31-07-10h/cropped_giga/"
+# SAVE_DIR = "/cnrm/recyf/NO_SAVE/Data/users/gandonb/importance_sampling/output/pre_proc_31-07-10h/draft/"
+
+# GRID_NUM = 0
+# VMAX = 0.02
+# make_save_dir(SAVE_DIR, args)
+# l_grid = np.load(DATA_DIR + str(1) + ".npy", allow_pickle=True)
+# fig, axes = plt.subplots()
+# img = axes.imshow(l_grid[GRID_NUM][0], origin="lower", vmin=0, vmax=VMAX)
+# fig.colorbar(img)
+# fig.savefig(SAVE_DIR + "rr.png")
+# dataframe = pd.read_csv(DATA_DIR + "labels.csv")
+# row = dataframe.iloc[GRID_NUM]
+# orig_grid = np.load(RAW_DATA_DIR + row["Date"] + "_rrlt1-24.npy", allow_pickle=True)
+# fig, axes = plt.subplots()
+# img = axes.imshow(orig_grid[:, :, int(row["Leadtime"])-1, int(row["Member"])-1], origin="lower", vmin=0, vmax=VMAX)
+# fig.colorbar(img)
+# fig.savefig(SAVE_DIR + "rr_orig.png")
+
 
 
