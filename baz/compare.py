@@ -21,7 +21,8 @@ dict_caract_set = {
     557: "555 like but optim.step()",
     558: "555 like",
     1001: "bs 32, tanF, d_optim_modif, quant",
-    1003: "34 like"
+    1003: "GAN",
+    1005: "GAN IS",
 }
 dict_steps_set = {
     11: 190000,
@@ -38,7 +39,8 @@ dict_steps_set = {
     557: 370000,
     558: 370000,
     1001: 240000,
-    1003: 160000,
+    1003: 320000,
+    1005: 280000,
 }
 dict_batch_size = {
     11: 8,
@@ -56,6 +58,7 @@ dict_batch_size = {
     558: 1,
     1001: 32,
     1003: 32,
+    1005: 32,
 }
 dict_step = {
     11: 10000,
@@ -70,8 +73,9 @@ dict_step = {
     556: 10000,
     557: 10000,
     558: 50000,
-    1001: 10000,
-    1003: 10000,
+    1001: 20000,
+    1003: 20000,
+    1005: 20000,
 }
 dict_color_set = {
     11: "orange",
@@ -87,16 +91,16 @@ dict_color_set = {
     556: "yellow",
     557: "red",
     558: "cyan",
-    1001: "orange",
-    1003: "red",
-
+    1001: "green",
+    1003: "green",
+    1005: "red",
 }
-set_list = [34, 1001, 1003]
+set_list = [1003, 1005]
 
 step_min = 0
 step_max = max(dict_steps_set.values())
-step_max = 240000
-step_space = 10000
+step_max = 320000
+step_space = 20000
 
 def compare_W1(set_list):
     plt.clf()
