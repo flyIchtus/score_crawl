@@ -85,7 +85,7 @@ def getAndNameDirs(option='rigid'):
         parser = argparse.ArgumentParser()
 
         parser.add_argument('--glob_name', type=str, help='Global experiment name', default='stylegan2_stylegan_')
-        parser.add_argument('--expe_set', type=int, help='Set of experiments to dig in.', default=1)
+        parser.add_argument('--expe_set', type=str, help='Set of experiments to dig in.', default=1)
         parser.add_argument('--list_step', type=int, help='Set the step between two consecutive steps', default=1000)
         parser.add_argument('--list_min', type=int, help='Set the starting step', default=None)
         parser.add_argument('--list_max', type=int, help='Set the starting step', default=None)
@@ -98,7 +98,7 @@ def getAndNameDirs(option='rigid'):
         parser.add_argument('--instance_num', type=str2list, help='Instances of experiment to dig in', default=[1])
         parser.add_argument('--latent_dim', type=str2list, default=[512], help='size of the latent vector')
         parser.add_argument('--variables', type = str2list, nargs="+", default=['rr','u','v','t2m'], help = 'List of subset of variables to compute metrics on') # provide as: --variables ['u','v'] ['t2m'] for instance (list after list)
-        parser.add_argument("--use_noise", type=str2bool, default=[True], help="prevent noise injection if false")
+        parser.add_argument("--use_noise", type=str2bool, default="True", help="prevent noise injection if false")
         parser.add_argument("--dom_sizes", type=str2list, default = [256], help="size of domain")
 
         parser.add_argument('--conditional', type=str2bool, help='Whether experiment is conditional', default=False)
@@ -121,12 +121,12 @@ def getAndNameDirs(option='rigid'):
                 for instance in multi_config.instance_num:
                     for dim in multi_config.latent_dim:
                         for variables in multi_config.variables:
-                            for n in multi_config.use_noise:
-                                for dom_size in multi_config.dom_sizes:
-                                    name = f"{root_expe_path}Set_{multi_config.expe_set}/{multi_config.glob_name}dom_{dom_size}_lat-dim_{dim}_bs_{batch}_{lr}_{lr}_ch-mul_{multi_config.ch_multip}_vars_{'_'.join(str(var) for var in variables)}_noise_{n}{'_mean_pert' if multi_config.mean_pert else ''}/Instance_{instance}"
-                                    names.append(name)
-                                    short_names.append(f"Instance_{instance}_Batch_{batch}_LR_{lr}_LAT_{multi_config.latent_dim}")
-                                    list_steps.append([int(s) for s in multi_config.list_steps])
+                            n = multi_config.use_noise
+                            for dom_size in multi_config.dom_sizes:
+                                name = f"{root_expe_path}Set_{multi_config.expe_set}/{multi_config.glob_name}dom_{dom_size}_lat-dim_{dim}_bs_{batch}_{lr}_{lr}_ch-mul_{multi_config.ch_multip}_vars_{'_'.join(str(var) for var in variables)}_noise_{n}{'_mean_pert' if multi_config.mean_pert else ''}/Instance_{instance}"
+                                names.append(name)
+                                short_names.append(f"Instance_{instance}_Batch_{batch}_LR_{lr}_LAT_{multi_config.latent_dim}")
+                                list_steps.append([int(s) for s in multi_config.list_steps])
         data_dir_names, log_dir_names = [f"{directory}/samples/" for directory in names], [f"{directory}/log/" for directory in names]
 
         multi_config.data_dir_names = data_dir_names

@@ -164,7 +164,8 @@ def length_scale(eps, sca = 1.0) :
         
         ls = correlation_length(g, sca)
     except RuntimeWarning as runtime_warn:
-        print(f"RUNTIME WARNING: {runtime_warn} ; {np.max(eps)} ; {eps}")
+        print(f"RUNTIME WARNING: {runtime_warn}") #; {np.max(eps)} ; {eps}")
+        ls = np.full(eps.shape, np.inf)
     return ls
 
 def test_correlation_fit():

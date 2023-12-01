@@ -56,21 +56,22 @@ def str2inttuple(li):
 
 parser = ArgumentParser()
 
-parser.add_argument("set", type=int, help="Set number")
+parser.add_argument("set", type=str, help="Set number")
 parser.add_argument("--start", type=int, default=0, help="Starting checkpoint")
 parser.add_argument("--stop", type=int, default=100000, help="Stopping checkpoint")
 parser.add_argument("--step", type=int, default=10000, help="Step between checkpoints")
 parser.add_argument("--n_samples", type=int, default=4096, help="Number of samples of statistics")
-parser.add_argument("-i", "--instances", default=[1], type=int, nargs="*", help="Instance number in Set")
+parser.add_argument("-i", "--instances", default=[2], type=str2intlist, nargs="*", help="Instance number in Set")
 
 args = parser.parse_args()
 
 set_number = args.set
 instance_number_list = args.instances
+print('instance_number_list', instance_number_list)
 
 n_samples = args.n_samples
 
-config_file = os.path.join("/home", "gmap", "mrmn", "gandonb", "SAVE", "styleganPNRIA", "gan", "configs", f"Set_{args.set}", "main_256.yaml")
+config_file = os.path.join("/home", "mrmn", "brochetc","styleganpnria", "gan", "configs", f"Set_{args.set}", "main.yaml")
 with open(config_file, 'r') as main_config_yaml:
     config = yaml.safe_load(main_config_yaml)
 
@@ -83,11 +84,11 @@ use_noise = config["ensemble"]["--use_noise"][0]
 var_names = str2list(config["ensemble"]["--var_names"][0])
 tanh_output = config["ensemble"]["--tanh_output"][0]
 
-var_names = ["rr", "u", "v", "t2m"]
-path = os.path.join("/scratch", "work", "gandonb", "Exp_StyleGAN", f"Set_{set_number}", f"stylegan2_stylegan_dom_{size}_lat-dim_{lat_dim}_bs_{bs}_{lr_D}_{lr_G}_ch-mul_2_vars_{'_'.join(str(var_name) for var_name in var_names)}_noise_{use_noise}")
-outpath = os.path.join("/scratch", "work", "gandonb", "Presentable", "plot_metric")
+var_names = ["u", "v", "t2m"] #["rr", "u", "v", "t2m"]
+path = os.path.join("/home", "mrmn", "brochetc", "score_crawl")#,"log", f"Set_{set_number}", f"stylegan2_stylegan_dom_{size}_lat-dim_{lat_dim}_bs_{bs}_{lr_D}_{lr_G}_ch-mul_2_vars_{'_'.join(str(var_name) for var_name in var_names)}_noise_{use_noise}")
+outpath = os.path.join("/home", "mrmn", "brochetc","score_crawl", "log","plot")#,"GAN_2D","tests", f"Set_{set_number}", "plot_metric")
 
-prefix = f"METR"
+prefix = f"random_METR"
 # prefix = f"AROME_PHY"
 arome = False
 # arome = True
@@ -114,8 +115,8 @@ if arome:
     filename_standalone = f"{prefix}_{standalone_metrics_str}_1_standalone_metrics_rr_u_v_t2m_dom_256{f'_{n_samples}' * 10}.p"
     filename_distance = f"{prefix}_{distance_metrics_str}_1_distance_metrics_rr_u_v_t2m_dom_256{f'_{n_samples}' * 10}.p"
 else:
-    filename_standalone = f"{prefix}_{standalone_metrics_str}_1_standalone_metrics_step_{steps_str}_{n_samples}.p"
-    filename_distance = f"{prefix}_{distance_metrics_str}_1_distance_metrics_step_{steps_str}_{n_samples}.p"
+    filename_standalone = f"{prefix}_{standalone_metrics_str}_standalone_metrics_{n_samples}_0_raw.p"
+    filename_distance = f"{prefix}_{distance_metrics_str}_distance_metrics_step_{n_samples}_0_raw.p"
 
 
 def quantile_map(set_number, instance_entry_list, path, outpath, filename_standalone, arome, args):
@@ -369,8 +370,15 @@ def SWD_torch_plot(set_number, instance_entry_list, path, outpath, filename_dist
                 np.save(os.path.join(outpath_SWD_torch, f'SWD_{dict_scale[scale_idx]}.npy'), np.array([steps_list, SWD_torch_list]))
 
 
+class instance_entry():
+    def __init__(self,string):
+        self.name = string
+
+
 def one_set(set_number, path, outpath, filename_distance, filename_standalone, arome, args):
-    instance_entry_list = sorted([instance for instance in os.scandir(path)], key=lambda instance: int(instance.name[9:]))
+    #instance_entry_list = sorted([instance for instance in os.scandir(path)], key=lambda instance: int(instance.name[9:]))
+    #instance_entry_list = instance_entry_list[1:]
+    instance_entry_list = [instance_entry('')]
     print("Plotting quantile maps...")
     quantile_map(set_number, instance_entry_list, path, outpath, filename_standalone, arome, args)
     print("Plotting ls metric maps...")

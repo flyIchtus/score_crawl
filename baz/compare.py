@@ -23,6 +23,7 @@ dict_caract_set = {
     1001: "bs 32, tanF, d_optim_modif, quant",
     1003: "GAN",
     1005: "GAN IS",
+    'UseNoiseFalse' : 'No noise',
 }
 dict_steps_set = {
     11: 190000,
@@ -41,6 +42,7 @@ dict_steps_set = {
     1001: 240000,
     1003: 320000,
     1005: 280000,
+    'UseNoiseFalse' : 150000,
 }
 dict_batch_size = {
     11: 8,
@@ -59,6 +61,7 @@ dict_batch_size = {
     1001: 32,
     1003: 32,
     1005: 32,
+    'UseNoiseFalse' : 32,
 }
 dict_step = {
     11: 10000,
@@ -76,6 +79,7 @@ dict_step = {
     1001: 20000,
     1003: 20000,
     1005: 20000,
+    'UseNoiseFalse' : 10000,
 }
 dict_color_set = {
     11: "orange",
@@ -94,8 +98,9 @@ dict_color_set = {
     1001: "green",
     1003: "green",
     1005: "red",
+    'UseNoiseFalse' : "red",
 }
-set_list = [1003, 1005]
+set_list = [1003, 'UseNoiseFalse']
 
 step_min = 0
 step_max = max(dict_steps_set.values())
