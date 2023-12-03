@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2023-12-03T15:00:09.304Z" agent="Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0" etag="iAkKtx0GQBcW0CaYOtlY" version="22.1.5" type="github">
+<mxfile host="app.diagrams.net" modified="2023-12-03T15:14:49.989Z" agent="Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0" etag="xVyMdA9jvS-7euBA7aZ7" version="22.1.5" type="github">
   <diagram id="R2lEEEUBdFMjLlhIrx00" name="Page-1">
     <mxGraphModel dx="1752" dy="519" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0" extFonts="Permanent Marker^https://fonts.googleapis.com/css?family=Permanent+Marker">
       <root>
@@ -188,73 +188,58 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-51" value="Différents types de métriques" style="shape=table;childLayout=tableLayout;startSize=30;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="1">
-          <mxGeometry x="-20" y="660" width="820" height="400" as="geometry" />
+          <mxGeometry x="-20" y="660" width="771" height="290" as="geometry" />
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-52" value="" style="shape=tableRow;horizontal=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;strokeColor=inherit;bottom=0;right=0;dropTarget=0;fontStyle=0;fillColor=none;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;startSize=40;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-51">
-          <mxGeometry y="30" width="820" height="109" as="geometry" />
+          <mxGeometry y="30" width="771" height="60" as="geometry" />
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-53" value="Agrégée &#xa;(sur un ensemble d&#39;échantillons)" style="swimlane;swimlaneHead=0;swimlaneBody=0;fontStyle=0;strokeColor=inherit;connectable=0;fillColor=none;startSize=120;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-52">
-          <mxGeometry x="40" width="330" height="109" as="geometry">
-            <mxRectangle width="330" height="109" as="alternateBounds" />
+          <mxGeometry x="40" width="318" height="60" as="geometry">
+            <mxRectangle width="318" height="60" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-54" value="Granulaire&#xa;(sur un échantillon / une date / une échéance&#xa;un ensemble)&#xa;" style="swimlane;swimlaneHead=0;swimlaneBody=0;fontStyle=0;strokeColor=inherit;connectable=0;fillColor=none;startSize=120;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-52">
-          <mxGeometry x="370" width="430" height="109" as="geometry">
-            <mxRectangle width="430" height="109" as="alternateBounds" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Dty2nUIaQpJQFnj-gWar-55" value="" style="swimlane;swimlaneHead=0;swimlaneBody=0;fontStyle=0;strokeColor=inherit;connectable=0;fillColor=none;startSize=120;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-52">
-          <mxGeometry x="800" width="20" height="109" as="geometry">
-            <mxRectangle width="20" height="109" as="alternateBounds" />
+          <mxGeometry x="358" width="413" height="60" as="geometry">
+            <mxRectangle width="413" height="60" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-56" value="Standalone" style="shape=tableRow;horizontal=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;strokeColor=inherit;bottom=0;right=0;dropTarget=0;fontStyle=0;fillColor=none;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;startSize=40;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-51">
-          <mxGeometry y="139" width="820" height="130" as="geometry" />
+          <mxGeometry y="90" width="771" height="90" as="geometry" />
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-57" value="" style="swimlane;swimlaneHead=0;swimlaneBody=0;fontStyle=0;connectable=0;strokeColor=inherit;fillColor=none;startSize=0;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-56">
-          <mxGeometry x="40" width="330" height="130" as="geometry">
-            <mxRectangle width="330" height="130" as="alternateBounds" />
+          <mxGeometry x="40" width="318" height="90" as="geometry">
+            <mxRectangle width="318" height="90" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-64" value="Exemple :&amp;nbsp; calcul de spectre" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-57">
           <mxGeometry x="40" y="41" width="170" height="30" as="geometry" />
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-58" value="" style="swimlane;swimlaneHead=0;swimlaneBody=0;fontStyle=0;connectable=0;strokeColor=inherit;fillColor=none;startSize=0;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-56">
-          <mxGeometry x="370" width="430" height="130" as="geometry">
-            <mxRectangle width="430" height="130" as="alternateBounds" />
+          <mxGeometry x="358" width="413" height="90" as="geometry">
+            <mxRectangle width="413" height="90" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-67" value="Variance des ensembles créés par la diffusion" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-58">
           <mxGeometry x="100" y="41" width="270" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="Dty2nUIaQpJQFnj-gWar-59" value="" style="swimlane;swimlaneHead=0;swimlaneBody=0;fontStyle=0;connectable=0;strokeColor=inherit;fillColor=none;startSize=0;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-56">
-          <mxGeometry x="800" width="20" height="130" as="geometry">
-            <mxRectangle width="20" height="130" as="alternateBounds" />
-          </mxGeometry>
-        </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-60" value="Distance" style="shape=tableRow;horizontal=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;strokeColor=inherit;bottom=0;right=0;dropTarget=0;fontStyle=0;fillColor=none;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;startSize=40;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-51">
-          <mxGeometry y="269" width="820" height="131" as="geometry" />
+          <mxGeometry y="180" width="771" height="110" as="geometry" />
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-61" value="" style="swimlane;swimlaneHead=0;swimlaneBody=0;fontStyle=0;connectable=0;strokeColor=inherit;fillColor=none;startSize=0;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-60">
-          <mxGeometry x="40" width="330" height="131" as="geometry">
-            <mxRectangle width="330" height="131" as="alternateBounds" />
+          <mxGeometry x="40" width="318" height="110" as="geometry">
+            <mxRectangle width="318" height="110" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-66" value="&lt;div&gt;Exemple : distance de Wasserstein&lt;/div&gt;entre AROME et GAN" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-61">
           <mxGeometry x="40" y="45.5" width="210" height="40" as="geometry" />
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-62" value="" style="swimlane;swimlaneHead=0;swimlaneBody=0;fontStyle=0;connectable=0;strokeColor=inherit;fillColor=none;startSize=0;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-60">
-          <mxGeometry x="370" width="430" height="131" as="geometry">
-            <mxRectangle width="430" height="131" as="alternateBounds" />
+          <mxGeometry x="358" width="413" height="110" as="geometry">
+            <mxRectangle width="413" height="110" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-68" value="Biais moyen des ensembles AROME vs les ensembles GANs" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-62">
           <mxGeometry x="50" y="50.5" width="350" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="Dty2nUIaQpJQFnj-gWar-63" value="" style="swimlane;swimlaneHead=0;swimlaneBody=0;fontStyle=0;connectable=0;strokeColor=inherit;fillColor=none;startSize=0;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-60">
-          <mxGeometry x="800" width="20" height="131" as="geometry">
-            <mxRectangle width="20" height="131" as="alternateBounds" />
-          </mxGeometry>
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-70" value="Calcul de score" style="shape=table;startSize=30;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=0;strokeColor=default;fontSize=16;" vertex="1" parent="1">
           <mxGeometry x="520" y="240" width="550" height="180" as="geometry" />
@@ -324,8 +309,11 @@
             <mxRectangle width="450" height="30" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Dty2nUIaQpJQFnj-gWar-88" value="&quot;SOUCIS TECHNIQUES&quot; : &lt;br&gt;&lt;ul&gt;&lt;li&gt;Construire proprement les noms de fichiers pour le stockage&lt;br&gt;&lt;/li&gt;&lt;li&gt;Régler les &quot;recettes de calcul&quot; : en parallèle, en séquentiel .... sur quel index on parallélise, etc...&lt;br&gt;&lt;/li&gt;&lt;li&gt;Traiter automatiquement mais simplement des expés issues de cadres très différents.&lt;/li&gt;&lt;li&gt;Permettre de mixer métriques / pré-traitement / chargement avec des fonctions simples&lt;/li&gt;&lt;li&gt;Permettre d&#39;ajouter rapidement de nouvelles &quot;logiques&quot;&lt;br&gt;&lt;/li&gt;&lt;/ul&gt;" style="text;strokeColor=none;fillColor=none;html=1;whiteSpace=wrap;verticalAlign=middle;overflow=hidden;" vertex="1" parent="1">
-          <mxGeometry x="700" y="450" width="440" height="140" as="geometry" />
+        <mxCell id="Dty2nUIaQpJQFnj-gWar-88" value="&quot;SOUCIS TECHNIQUES&quot; : &lt;br&gt;&lt;ul&gt;&lt;li&gt;Construire proprement les noms de fichiers pour le stockage&lt;br&gt;&lt;/li&gt;&lt;li&gt;Régler les &quot;recettes de calcul&quot; : en parallèle, en séquentiel .... sur quel index on parallélise, etc...&lt;br&gt;&lt;/li&gt;&lt;li&gt;Traiter automatiquement mais simplement des expés issues de cadres très différents.&lt;/li&gt;&lt;li&gt;Permettre de mixer métriques / pré-traitement / chargement avec des fonctions simples&lt;/li&gt;&lt;li&gt;Permettre d&#39;ajouter rapidement de nouvelles &quot;logiques&quot; de calcul sans avoir à tout recoder quand un cas d&#39;usage se profiles&lt;br&gt;&lt;/li&gt;&lt;/ul&gt;" style="text;strokeColor=none;fillColor=none;html=1;whiteSpace=wrap;verticalAlign=middle;overflow=hidden;" vertex="1" parent="1">
+          <mxGeometry x="700" y="450" width="440" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="Dty2nUIaQpJQFnj-gWar-89" value="&lt;div&gt;Actuellement, deux bibliothèques : &lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;score_crawl&lt;/div&gt;&lt;div&gt;score_ensemble&lt;br&gt;&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="890" y="660" width="210" height="70" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
