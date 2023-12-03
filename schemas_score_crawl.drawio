@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2023-12-03T15:19:21.210Z" agent="Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0" etag="TcvZnV8yY44fBcQrcNkV" version="22.1.5" type="github">
+<mxfile host="app.diagrams.net" modified="2023-12-03T17:29:29.114Z" agent="Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0" etag="UIhmrakyCS4Kvs0BFD_A" version="22.1.5" type="github">
   <diagram id="R2lEEEUBdFMjLlhIrx00" name="Page-1">
     <mxGraphModel dx="902" dy="519" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0" extFonts="Permanent Marker^https://fonts.googleapis.com/css?family=Permanent+Marker">
       <root>
@@ -188,7 +188,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-51" value="Différents types de métriques" style="shape=table;childLayout=tableLayout;startSize=30;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="1">
-          <mxGeometry x="10" y="630" width="771" height="310" as="geometry" />
+          <mxGeometry x="10" y="690" width="771" height="310" as="geometry" />
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-52" value="" style="shape=tableRow;horizontal=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;strokeColor=inherit;bottom=0;right=0;dropTarget=0;fontStyle=0;fillColor=none;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;startSize=40;collapsible=0;recursiveResize=0;expand=0;fontSize=16;" vertex="1" parent="Dty2nUIaQpJQFnj-gWar-51">
           <mxGeometry y="30" width="771" height="80" as="geometry" />
@@ -313,7 +313,7 @@
           <mxGeometry x="700" y="450" width="440" height="170" as="geometry" />
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-89" value="&lt;div&gt;Actuellement, deux bibliothèques : &lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;score_crawl&lt;/div&gt;&lt;div&gt;score_ensemble&lt;br&gt;&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="830" y="640" width="210" height="70" as="geometry" />
+          <mxGeometry x="930" y="750" width="210" height="70" as="geometry" />
         </mxCell>
         <mxCell id="Dty2nUIaQpJQFnj-gWar-90" value="Solutions possibles&lt;br&gt;&lt;ul&gt;&lt;li&gt;Massifier les recours aux fichiers de configs (lecture commune expérience - calcul de score)&lt;br&gt;&lt;/li&gt;&lt;li&gt;Plus d&#39;objets (déjà une classe &quot;métrique&quot; pratique, une classe &quot;transform&quot; pratique (à étoffer ?)&lt;/li&gt;&lt;li&gt;Moins de &quot;fonctions qui font tout&quot;&lt;br&gt;&lt;/li&gt;&lt;/ul&gt;" style="text;strokeColor=none;fillColor=none;html=1;whiteSpace=wrap;verticalAlign=middle;overflow=hidden;" vertex="1" parent="1">
           <mxGeometry x="1220" y="440" width="230" height="180" as="geometry" />
