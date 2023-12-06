@@ -128,7 +128,7 @@ if arome:
     filename_distance = f"{prefix}_{distance_metrics_str}_1_distance_metrics_rr_u_v_t2m_dom_256{f'_{n_samples}' * 10}.p"
 else:
     filename_standalone = f"{prefix}_{standalone_metrics_str}_standalone_metrics_{n_samples}_0_{suffix}.p"
-    filename_standalone_real = f"METR_{standalone_metrics_str}_standalone_metrics_8456_0_real.p"
+    filename_standalone_real = f"random_1_METR_{standalone_metrics_str}_standalone_metrics_16384_0_real_cropped.p"
 
     filename_distance = f"{prefix}_{distance_metrics_str}_distance_metrics_{n_samples}_0_{suffix}.p"
 
@@ -371,7 +371,7 @@ def spectral_compare_plot(set_number, instance_entry_list, path, outpath, filena
                     plt.clf()
                     scale = np.linspace(2 * np.pi / 2.6, (45 * 256 // 128) * 2 * np.pi / 2.6, (45 * 256 // 128))
                     scale2 = np.linspace(2 * np.pi / 2.6, (45 * 256 // 128) * 2 * np.pi / 2.6, (45 * 256 // 128 - 3))
-                    plt.plot(scale, spectral_compute_real, 'k-' , label=labels[1])
+                    plt.plot(scale2, spectral_compute_real, 'k-' , label=labels[1])
                     plt.plot(scale2, spectral_compute_list, 'r-', label=labels[0])
                     if idx_output_path == 1:
                         plt.ylim([10e-8, 10e-2])

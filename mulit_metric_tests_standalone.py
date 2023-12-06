@@ -136,7 +136,7 @@ name_real = os.path.dirname(os.path.realpath(__file__)) +  f"/log/{log_prefix}_M
 name_fake = os.path.dirname(os.path.realpath(__file__)) +  f"/log/{log_prefix}_METR_" + '_'.join(standalone_metrics_list) + f'_standalone_metrics_{N_samples}_{lt0}_raw.p'
 name_fake_unbiased = os.path.dirname(os.path.realpath(__file__)) +  f"/log/{log_prefix}_METR_" + '_'.join(standalone_metrics_list) + f'_standalone_metrics_{N_samples}_{lt0}_unbiased.p'
 
-with open(name_fake,'wb') as f:
+with open(name_real,'wb') as f:
     pickle.dump(dic_res_real, f)
 
 if args.unbiased:
