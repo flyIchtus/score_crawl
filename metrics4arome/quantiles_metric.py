@@ -28,7 +28,7 @@ def quantiles(data, qlist) :
         np.array of shape N x C x H x W
     """
   
-    return np.quantile(data, qlist, axis =0)
+    return np.quantile(data, qlist, axis=0)
 
 def quantile_score(real_data, fake_data, qlist=[0.99]) :
     """

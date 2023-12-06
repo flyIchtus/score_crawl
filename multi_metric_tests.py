@@ -17,7 +17,8 @@ fake_dir = "/scratch/mrmn/moldovang/tests_CGAN/" #random_['1', '0', '0', '0', '0
 labels_file = '/scratch/mrmn/brochetc/GAN_2D/datasets_full_indexing/large_lt/Large_lt_test_labels.csv'
 
 
-expes = {"inversion" : ['INVERSION_200/', 'invert', 'invertFsemble'],
+expes = {"extrapolation" : ["extrapolation_['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1']/", "extrap", "genFsemble"],
+        "inversion" : ['INVERSION_200/', 'invert', 'invertFsemble'],
         "random_1" : ["random_['1', '0', '0', '0', '0', '0', '1', '0', '1', '0', '1', '1', '0', '1']/", 'random_1', 'genFsemble'], 
         "random_2" : ["random_['1', '0', '0', '0', '0', '0', '1', '0', '1', '0', '1', '1', '0', '1']/", 'random_1', 'genFsemble'],
         "normal_full" : ["normal_['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1']/", 'normal_full', 'genFsemble'],
@@ -27,6 +28,7 @@ expes = {"inversion" : ['INVERSION_200/', 'invert', 'invertFsemble'],
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--expe', type=str)
+parser.add_argument('--unbiased', action='store_true')
 
 args = parser.parse_args()
 
@@ -45,7 +47,7 @@ print(len(dates))
 
 standalone_metrics_list = ["spectral_compute", "ls_metric", "quant_map"]
 distance_metrics_list = ["W1_random_NUMPY", "W1_Center_NUMPY", "SWD_metric_torch"]
-#distance_metrics_list = ["multivar"]
+distance_metrics_list = ["multivar"]
 
 #leadtimes = [int(sys.argv[1])]
 leadtimes = [6,12,18,24,30,36,42]
@@ -60,7 +62,8 @@ print('N_samples', N_samples)
 
 fakes = []
 real = []
-fakes_unbiased = []
+if args.unbiased:
+    fakes_unbiased = []
 
 glob_idx = 0
 for date_idx, date in enumerate(dates):
@@ -72,9 +75,20 @@ for date_idx, date in enumerate(dates):
         if ensemble_members * (glob_idx + 1) <= N_samples:
 
             try:
-                fakes.append(np.load(fake_dir + f"samples/{fake_prefix}_{date}_{lt}_1000.npy", mmap_mode = 'r').astype(np.float32)[0:ensemble_members])
+                end = 16 if expe=='inversion' else 112
+                step = 1 if expe=='inversion' else 112//(ensemble_members)
+
+                fakes_all = np.load(fake_dir + f"samples/{fake_prefix}_{date}_{lt}_1000.npy", mmap_mode = 'r').astype(np.float32)
+
+                fakes.append(fakes_all[0:end:step]) #extracting
+                if args.unbiased:
+                    fakes_mean = np.zeros((ensemble_members,3,256,256))
+                    for i in range(ensemble_members):
+                        fakes_mean[i] = fakes_all[i * step : (i + 1) * step].mean(axis=0)
+
                 real.append(np.load(real_dir + f"samples/Rsemble_{date}_{lt}.npy", mmap_mode = 'r').astype(np.float32)[:ensemble_members])
-                fakes_unbiased.append(fakes[-1] - fakes[-1].mean(axis=0) + real[-1].mean(axis=0))
+                if args.unbiased : 
+                    fakes_unbiased.append(fakes[-1] - fakes_mean + real[-1].mean(axis=0))
 
             except FileNotFoundError as err:
                 print(err)
@@ -82,7 +96,8 @@ for date_idx, date in enumerate(dates):
         else:
             break
 
-print(len(fakes), len(real), len(fakes_unbiased))
+print(len(fakes), len(real))
+if args.unbiased: print(len(fakes_unbiased))
 
 fakes = np.concatenate(fakes)
 print(fakes.shape)
@@ -90,10 +105,11 @@ print(fakes[:,2,:,:].mean(axis=(0,-2,-1)))
 real = np.concatenate(real)
 print(real[:,2,:,:].mean(axis=(0,-2,-1)))
 
-fakes_unbiased = np.concatenate(fakes_unbiased)
+if args.unbiased:
+    fakes_unbiased = np.concatenate(fakes_unbiased)
 
 
-#dic_res_real = {}
+dic_res_real = {}
 dic_res = {}
 dic_res_unbiased = {}
 
@@ -103,7 +119,8 @@ for metr_name in distance_metrics_list:
     metric = getattr(METR, metr_name)
 
     dic_res[metr_name] = metric(real, fakes)
-    dic_res_unbiased[metr_name] = metric(fakes_unbiased, real)
+    if args.unbiased:
+        dic_res_unbiased[metr_name] = metric(real,fakes_unbiased)
 
 lt0 = 0 if num_lt > 1 else lt
 
@@ -117,8 +134,9 @@ name_fake_unbiased = os.path.dirname(os.path.realpath(__file__)) +  f"/log/{log_
 with open(name_fake,'wb') as f:
     pickle.dump(dic_res, f)
 
-with open(name_fake_unbiased,'wb') as f:
-    pickle.dump(dic_res_unbiased, f)
+if args.unbiased:
+    with open(name_fake_unbiased,'wb') as f:
+        pickle.dump(dic_res_unbiased, f)
 
 
 """for metr_name in standalone_metrics_list:

@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.insert(0, '/home/moldovang/sxbigdata1/stylegan2-pytorch-master')
 
-from utils import (
+"""from utils import (
 
     real_fake,
 
-    )
+    )"""
 
 
 import numpy as np
@@ -41,11 +41,13 @@ plt.rcParams['axes.linewidth'] = 2
 
 
 
+data_dir = '/scratch/mrmn/brochetc/GAN_2D/Exp_StyleGAN_final/eval_scores_cond/log/'
 
+def denorm(data, Mean, Maxs, scale):
 
+    return (1.0/scale) * Maxs * data + Mean
 
-
-mse_SG = np.load('L_mse_' + str(0) + '_SG' + '.npy' )
+"""mse_SG = np.load('L_mse_' + str(0) + '_SG' + '.npy' )
 mse_standard = np.load('L_mse_' + str(0) + '_standard' + '.npy' )
 mse_Wplus = np.load('L_mse_' + str(0) + '_Wplus' + '.npy' )
 avg_var = np.load('Avg_var_' + str(0) + '_SG' + '.npy' )
@@ -71,132 +73,226 @@ ax.plot(mse_Wplus, linewidth=1, color='grey', label='AROME W+')
 ax.set_yscale('log')
 
 ax.legend(bbox_to_anchor=(1, 1), loc=1, frameon=False, fontsize=14)
-plt.savefig("mse_err"+".pdf", bbox_inches='tight')
+plt.savefig("mse_err"+".pdf", bbox_inches='tight')"""
 
 
 ###########################################################################################
 
-Ens_proj_var_wplus = np.load('Sample_fake_0_wplus.npy' )
-Ens_proj_var_w = np.load('Sample_fake_0_w.npy' )
-Ens_real_var = np.load('Sample_real_0.npy' )
+for i in range(16):
+    print("*"*30, i, "*"*30)
+    per_cond = 7
+    Ens_invert = np.load(data_dir + 'plot_invert_1000_raw/invertFsemble_2021-11-15_9_1000.npy')[i]
+    Ens_normal = np.load(data_dir + 'plot_normal_full_raw/genFsemble_2021-11-15_9_1000.npy')[i * per_cond]
+    Ens_normal_1 = np.load(data_dir + 'plot_normal_1_raw/genFsemble_2021-11-15_9_1000.npy')[i * per_cond]
+    Ens_random = np.load(data_dir + 'plot_random_raw/genFsemble_2021-11-15_9_1000.npy')[i * per_cond]
 
-Ens_proj_var_wplus = np.squeeze(Ens_proj_var_wplus, axis=0)
-Ens_proj_var_w = np.squeeze(Ens_proj_var_w, axis=0)
-Ens_real_var = np.squeeze(Ens_real_var, axis=0)
+    Ens_real = np.load(data_dir + 'plot_real_raw/Rsemble_2021-11-15_9.npy')[i]
 
-fig, axs = plt.subplots(3, 3, figsize=(6, 4.9))
-    
-gs1 = gridspec.GridSpec(3, 3)
-gs1.update(wspace=0.175, hspace=0.175) # set the spacing between axes. 
+    print(Ens_invert.mean(axis=(-2,-1)))
+    print(Ens_normal.mean(axis=(-2,-1)))
+    print(Ens_normal_1.mean(axis=(-2,-1)))
+    print(Ens_random.mean(axis=(-2,-1)))
+    print(Ens_real.mean(axis=(-2,-1)))
 
-#plt.rcParams["figure.figsize"] = [50.00, 3.50]
-plt.rcParams["figure.autolayout"] = True
-
-axs = plt.subplot(gs1[0])
-c = axs.pcolor(Ens_proj_var_w[2,:,:], cmap="coolwarm",vmin = Ens_real_var[2,:,:].min(), vmax = Ens_real_var[2,:,:].max())
-axs.set_title('t2m')
-axs.axis('off')
-cb = fig.colorbar(c,ax=axs)     
-cb.formatter.set_powerlimits((0, 0))
-cb.ax.yaxis.set_offset_position('right')   
-cb.ax.tick_params(labelsize=8)    
-cb.ax.yaxis.get_offset_text().set(size=8)    
-cb.outline.set_linewidth(1)              
-cb.update_ticks()
-
-axs = plt.subplot(gs1[3])
-c = axs.pcolor(Ens_proj_var_wplus[2,:,:], cmap="coolwarm",vmin = Ens_real_var[2,:,:].min(), vmax = Ens_real_var[2,:,:].max())
-axs.axis('off')
-cb = fig.colorbar(c,ax=axs)     
-cb.formatter.set_powerlimits((0, 0))
-cb.ax.yaxis.set_offset_position('right')   
-cb.ax.tick_params(labelsize=8)    
-cb.ax.yaxis.get_offset_text().set(size=8)    
-cb.outline.set_linewidth(1)              
-cb.update_ticks()
-
-axs = plt.subplot(gs1[6])
-c = axs.pcolor(Ens_real_var[2,:,:], cmap="coolwarm", vmin = Ens_real_var[2,:,:].min(), vmax = Ens_real_var[2,:,:].max())
-axs.axis('off')
-cb = fig.colorbar(c,ax=axs)     
-cb.formatter.set_powerlimits((0, 0))
-cb.ax.yaxis.set_offset_position('right')
-cb.ax.tick_params(labelsize=8)
-cb.ax.yaxis.get_offset_text().set(size=8)
-cb.outline.set_linewidth(1)                           
-cb.update_ticks()
-
-axs = plt.subplot(gs1[1])
-c = axs.pcolor(Ens_proj_var_w[0,:,:], cmap="viridis", vmin = Ens_real_var[0,:,:].min(), vmax = Ens_real_var[0,:,:].max())
-axs.axis('off')
-axs.set_title('u')
-cb = fig.colorbar(c,ax=axs)     
-cb.formatter.set_powerlimits((0, 0))
-cb.ax.yaxis.set_offset_position('right') 
-cb.ax.tick_params(labelsize=8)
-cb.ax.yaxis.get_offset_text().set(size=8)
-cb.outline.set_linewidth(1)                         
-cb.update_ticks()
-
-axs = plt.subplot(gs1[4])
-c = axs.pcolor(Ens_proj_var_wplus[0,:,:], cmap="viridis", vmin = Ens_real_var[0,:,:].min(), vmax = Ens_real_var[0,:,:].max())
-axs.axis('off')
-cb = fig.colorbar(c,ax=axs)     
-cb.formatter.set_powerlimits((0, 0))
-cb.ax.yaxis.set_offset_position('right') 
-cb.ax.tick_params(labelsize=8)
-cb.ax.yaxis.get_offset_text().set(size=8)
-cb.outline.set_linewidth(1)                         
-cb.update_ticks()
-
-axs = plt.subplot(gs1[7])
-c = axs.pcolor(Ens_real_var[0,:,:], cmap="viridis", vmin = Ens_real_var[0,:,:].min(), vmax = Ens_real_var[0,:,:].max())
-axs.axis('off')
-cb = fig.colorbar(c,ax=axs)     
-cb.formatter.set_powerlimits((0, 0))
-cb.ax.yaxis.set_offset_position('right')
-cb.ax.tick_params(labelsize=8)
-cb.ax.yaxis.get_offset_text().set(size=8)
-cb.outline.set_linewidth(1)                          
-cb.update_ticks()
-
-axs = plt.subplot(gs1[2])
-c = axs.pcolor(Ens_proj_var_w[1,:,:], cmap="viridis", vmin = Ens_real_var[1,:,:].min(), vmax = Ens_real_var[1,:,:].max())
-axs.axis('off')
-axs.set_title('v')
-cb = fig.colorbar(c,ax=axs)     
-cb.formatter.set_powerlimits((0, 0))
-cb.ax.yaxis.set_offset_position('right')
-cb.ax.tick_params(labelsize=8)
-cb.ax.yaxis.get_offset_text().set(size=8)
-cb.outline.set_linewidth(1)                          
-cb.update_ticks()
-
-axs = plt.subplot(gs1[5])
-c = axs.pcolor(Ens_proj_var_wplus[1,:,:], cmap="viridis", vmin = Ens_real_var[1,:,:].min(), vmax = Ens_real_var[1,:,:].max())
-axs.axis('off')
-cb = fig.colorbar(c,ax=axs)     
-cb.formatter.set_powerlimits((0, 0))
-cb.ax.yaxis.set_offset_position('right')
-cb.ax.tick_params(labelsize=8)
-cb.ax.yaxis.get_offset_text().set(size=8)
-cb.outline.set_linewidth(1)                          
-cb.update_ticks()
-
-axs = plt.subplot(gs1[8])
-c = axs.pcolor(Ens_real_var[1,:,:], cmap="viridis", vmin = Ens_real_var[1,:,:].min(), vmax = Ens_real_var[1,:,:].max())
-axs.axis('off')
-cb = fig.colorbar(c,ax=axs)     
-cb.formatter.set_powerlimits((0, 0))
-cb.ax.yaxis.set_offset_position('right')
-cb.ax.tick_params(labelsize=8)
-cb.ax.yaxis.get_offset_text().set(size=8)
-cb.outline.set_linewidth(1)                          
-cb.update_ticks()
+    Mean = np.load('/scratch/mrmn/brochetc/GAN_2D/datasets_full_indexing/stat_files/Mean_4_var.npy')[1:].reshape(3,1,1)
+    Maxs = np.load('/scratch/mrmn/brochetc/GAN_2D/datasets_full_indexing/stat_files/MaxNew_4_var.npy')[1:].reshape(3,1,1)
 
 
-plt.savefig("comparison_real_proj.jpg",  dpi=600, transparent=False, bbox_inches='tight')
+    Ens_invert = denorm(Ens_invert, Mean, Maxs, 0.95)
+    Ens_normal = denorm(Ens_normal, Mean, Maxs, 0.95)
+    Ens_normal_1 = denorm(Ens_normal_1, Mean, Maxs, 0.95)
+    Ens_random = denorm(Ens_random, Mean, Maxs, 0.95)
+    Ens_real = denorm(Ens_real, Mean, Maxs, 0.95)
 
+    print(Ens_invert.mean(axis=(-2,-1)))
+    print(Ens_normal.mean(axis=(-2,-1)))
+    print(Ens_normal_1.mean(axis=(-2,-1)))
+    print(Ens_random.mean(axis=(-2,-1)))
+    print(Ens_real.mean(axis=(-2,-1)))
+
+    fig, axs = plt.subplots(3, 5, figsize=(10, 4.9))
+        
+    gs1 = gridspec.GridSpec(3, 5)
+    gs1.update(wspace=0.175, hspace=0.175) # set the spacing between axes. 
+
+    #plt.rcParams["figure.figsize"] = [50.00, 3.50]
+    plt.rcParams["figure.autolayout"] = True
+
+    axs = plt.subplot(gs1[0])
+    c = axs.pcolor(Ens_invert[2,:,:], cmap="coolwarm",vmin = Ens_real[2,:,:].min(), vmax = Ens_real[2,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right')   
+    cb.ax.tick_params(labelsize=8)    
+    cb.ax.yaxis.get_offset_text().set(size=8)    
+    cb.outline.set_linewidth(1)              
+    cb.update_ticks()
+
+
+    axs = plt.subplot(gs1[1])
+    c = axs.pcolor(Ens_normal[2,:,:], cmap="coolwarm",vmin = Ens_real[2,:,:].min(), vmax = Ens_real[2,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right')   
+    cb.ax.tick_params(labelsize=8)    
+    cb.ax.yaxis.get_offset_text().set(size=8)    
+    cb.outline.set_linewidth(1)              
+    cb.update_ticks()
+
+    axs = plt.subplot(gs1[2])
+    c = axs.pcolor(Ens_normal_1[2,:,:], cmap="coolwarm",vmin = Ens_real[2,:,:].min(), vmax = Ens_real[2,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right')   
+    cb.ax.tick_params(labelsize=8)    
+    cb.ax.yaxis.get_offset_text().set(size=8)    
+    cb.outline.set_linewidth(1)              
+    cb.update_ticks()
+
+
+    axs = plt.subplot(gs1[3])
+    c = axs.pcolor(Ens_random[2,:,:], cmap="coolwarm",vmin = Ens_real[2,:,:].min(), vmax = Ens_real[2,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right')   
+    cb.ax.tick_params(labelsize=8)    
+    cb.ax.yaxis.get_offset_text().set(size=8)    
+    cb.outline.set_linewidth(1)              
+    cb.update_ticks()
+
+    axs = plt.subplot(gs1[4])
+    c = axs.pcolor(Ens_real[2,:,:], cmap="coolwarm", vmin = Ens_real[2,:,:].min(), vmax = Ens_real[2,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right')
+    cb.ax.tick_params(labelsize=8)
+    cb.ax.yaxis.get_offset_text().set(size=8)
+    cb.outline.set_linewidth(1)                           
+    cb.update_ticks()
+
+    ################################################
+
+    axs = plt.subplot(gs1[5])
+    c = axs.pcolor(Ens_invert[0,:,:], cmap="viridis", vmin = Ens_real[0,:,:].min(), vmax = Ens_real[0,:,:].max())
+    axs.axis('off')
+
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right') 
+    cb.ax.tick_params(labelsize=8)
+    cb.ax.yaxis.get_offset_text().set(size=8)
+    cb.outline.set_linewidth(1)                         
+    cb.update_ticks()
+
+    axs = plt.subplot(gs1[6])
+    c = axs.pcolor(Ens_normal[0,:,:], cmap="viridis", vmin = Ens_real[0,:,:].min(), vmax = Ens_real[0,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right') 
+    cb.ax.tick_params(labelsize=8)
+    cb.ax.yaxis.get_offset_text().set(size=8)
+    cb.outline.set_linewidth(1)                         
+    cb.update_ticks()
+
+    axs = plt.subplot(gs1[7])
+    c = axs.pcolor(Ens_normal_1[0,:,:], cmap="viridis", vmin = Ens_real[0,:,:].min(), vmax = Ens_real[0,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right') 
+    cb.ax.tick_params(labelsize=8)
+    cb.ax.yaxis.get_offset_text().set(size=8)
+    cb.outline.set_linewidth(1)                         
+    cb.update_ticks()
+
+    axs = plt.subplot(gs1[8])
+    c = axs.pcolor(Ens_random[0,:,:], cmap="viridis", vmin = Ens_real[0,:,:].min(), vmax = Ens_real[0,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right') 
+    cb.ax.tick_params(labelsize=8)
+    cb.ax.yaxis.get_offset_text().set(size=8)
+    cb.outline.set_linewidth(1)                         
+    cb.update_ticks()
+
+    axs = plt.subplot(gs1[9])
+    c = axs.pcolor(Ens_real[0,:,:], cmap="viridis", vmin = Ens_real[0,:,:].min(), vmax = Ens_real[0,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right')
+    cb.ax.tick_params(labelsize=8)
+    cb.ax.yaxis.get_offset_text().set(size=8)
+    cb.outline.set_linewidth(1)                          
+    cb.update_ticks()
+
+    ################################################
+
+    axs = plt.subplot(gs1[10])
+    c = axs.pcolor(Ens_invert[1,:,:], cmap="viridis", vmin = Ens_real[1,:,:].min(), vmax = Ens_real[1,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right')
+    cb.ax.tick_params(labelsize=8)
+    cb.ax.yaxis.get_offset_text().set(size=8)
+    cb.outline.set_linewidth(1)                          
+    cb.update_ticks()
+
+    axs = plt.subplot(gs1[11])
+    c = axs.pcolor(Ens_normal[1,:,:], cmap="viridis", vmin = Ens_real[1,:,:].min(), vmax = Ens_real[1,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right')
+    cb.ax.tick_params(labelsize=8)
+    cb.ax.yaxis.get_offset_text().set(size=8)
+    cb.outline.set_linewidth(1)                          
+    cb.update_ticks()
+
+    axs = plt.subplot(gs1[12])
+    c = axs.pcolor(Ens_normal_1[1,:,:], cmap="viridis", vmin = Ens_real[1,:,:].min(), vmax = Ens_real[1,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right')
+    cb.ax.tick_params(labelsize=8)
+    cb.ax.yaxis.get_offset_text().set(size=8)
+    cb.outline.set_linewidth(1)                          
+    cb.update_ticks()
+
+    axs = plt.subplot(gs1[13])
+    c = axs.pcolor(Ens_random[1,:,:], cmap="viridis", vmin = Ens_real[1,:,:].min(), vmax = Ens_real[1,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right')
+    cb.ax.tick_params(labelsize=8)
+    cb.ax.yaxis.get_offset_text().set(size=8)
+    cb.outline.set_linewidth(1)                          
+    cb.update_ticks()
+
+    axs = plt.subplot(gs1[14])
+    c = axs.pcolor(Ens_real[1,:,:], cmap="viridis", vmin = Ens_real[1,:,:].min(), vmax = Ens_real[1,:,:].max())
+    axs.axis('off')
+    cb = fig.colorbar(c,ax=axs)     
+    cb.formatter.set_powerlimits((0, 0))
+    cb.ax.yaxis.set_offset_position('right')
+    cb.ax.tick_params(labelsize=8)
+    cb.ax.yaxis.get_offset_text().set(size=8)
+    cb.outline.set_linewidth(1)                          
+    cb.update_ticks()
+
+
+    plt.savefig(f"comparison_real_gen_{i}.jpg",  dpi=600, transparent=False, bbox_inches='tight')
+    plt.close()
 #################################################################################################
 
 fig, axs = plt.subplots(2, 3, figsize=(6, 3.15))

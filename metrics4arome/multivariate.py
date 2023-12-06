@@ -47,6 +47,7 @@ def plot2D_histo(var2var_f, var2var_r, levels, output_dir, add_name):
           cb.ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
           cb.set_label('Density (log scale)', fontweight='bold', fontsize='large', rotation=270)
     fig.tight_layout(rect=(0.0,0.0,0.9,0.95))
+    print("save fig")
     plt.savefig(output_dir+'multi_plot_'+add_name+'.png')
     
     plt.close()
@@ -191,14 +192,14 @@ def define_levels(bivariates, nlevels):
     return levels
 
 
-def space2batch(data):
+def space2batch(data, offset):
 
     Shape=data.shape
     assert len(Shape)==4
     
     data_list = []
     for i in range(Shape[1]):
-        data_list.append(np.expand_dims(data[:,i,:,:].reshape(Shape[0] * Shape[2] * Shape[3]), axis= 1))
+        data_list.append(np.expand_dims(data[:,i,offset:-offset,offset:-offset].reshape(Shape[0] * (Shape[2] - 2 * offset) * (Shape[3] - 2 * offset)), axis= 1))
     
     a = np.concatenate(data_list, axis = 1)
     return a
@@ -264,8 +265,8 @@ def multi_variate_correlations(data_real, data_fake):
     
     bins=np.linspace(tuple([-1 for i in range(ncouples2)]), tuple([1 for i in range(ncouples2)]),101, axis=1)
     
-    data_f=space2batch(data_fake)
-    data_r=space2batch(data_real)
+    data_f=space2batch(data_fake,4)
+    data_r=space2batch(data_real,4)
     
     print(data_f.shape)
     print(data_r.shape)

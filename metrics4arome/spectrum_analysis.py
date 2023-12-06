@@ -168,7 +168,7 @@ def PowerSpectralDensity_Distrib(x) :
     return np.array(out_list)
     
 
-def PowerSpectralDensity(x):
+def PowerSpectralDensity(x, offset=4):
     """
     compute the radially-averaged, sample-averaged power spectral density 
     of the data x
@@ -186,7 +186,7 @@ def PowerSpectralDensity(x):
     channels = x.shape[1]    
     
     for c in range(channels) :
-        x_c = x[:,c,:,:]
+        x_c = x[:,c,offset:-offset,offset:-offset]
         sig = dct_var(x_c).mean(axis=0)
     
         center = (sig.shape[0]//2, sig.shape[1]//2)
