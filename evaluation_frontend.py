@@ -188,7 +188,7 @@ class EnsembleMetricsCalculator(Experiment):
     
     def process_data(self, config, Transformer, prog_idx, step, metrics_list, steps, parallel_on_steps = True):
             dataset_r = backend.build_real_datasets(real_data_dir, self.program)[prog_idx]
-            files = glob(os.path.join(self.data_dir_f,f"{self.fake_prefix}{step}_*.npy"))
+            files = glob(os.path.join(f"{self.data_dir_f}") + f"{self.fake_prefix}*.npy")
             N_samples = self.program[prog_idx]
             N_samples = check_number_files(files, N_samples, step, steps)
             result = backend.eval_distance_metrics(config, Transformer, metrics_list, {'real': dataset_r, 'fake': files}, N_samples, N_samples, self.VI, self.VI_f, self.CI, step)
@@ -456,7 +456,8 @@ class EnsembleMetricsCalculator(Experiment):
                 data_list = []
                 for step in self.steps:
                     # getting files to analyze from fake dataset
-                    files = glob(f"{self.data_dir_f}{self.fake_prefix}{step}_*.npy")
+                    print(f"{self.data_dir_f}{self.fake_prefix}*.npy")
+                    files = glob(os.path.join(f"{self.data_dir_f}") + f"{self.fake_prefix}*.npy")
                     n_samples = check_number_files(files, n_samples, step, self.steps)
 
                     data_list.append((config, Transformer, metrics_list, files, n_samples, self.VI, self.VI_f, self.CI, step, option))
@@ -470,9 +471,11 @@ class EnsembleMetricsCalculator(Experiment):
             return RES
 
 def check_number_files(files, n_samples, step, steps):
-    if len(files) < 128:
+    print(files)
+    if len(files) < 4:
         raise FileNotFoundError(f'Not enough files, it is likely that the step {step} has not been generated. If generation is active and with the good parameters, there are {len(files) % 128}/128 files for step {step}/{steps[-1]}')
     Shape = np.load(files[0], mmap_mode='c').shape
+    print(Shape, len(files))
     if Shape[0] * len(files) < n_samples:
         raise ValueError(f"Not enough fakes to sample, you want {n_samples}, there are only {Shape[0] * len(files)} for files similar (same step) to {files[0]}")
     if n_samples % Shape[0] != 0:

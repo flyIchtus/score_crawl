@@ -105,7 +105,7 @@ class Transform:
         print(f"{str2} file found")
         return means_or_maxs, stds_or_mins
 
-    def detransform(self, data, step):
+    def detransform(self, data, step, VI):
         norm_type = self.dataset_handler_yaml["normalization"]["type"]
         per_pixel = self.dataset_handler_yaml["normalization"]["per_pixel"]
         rr_transform = self.dataset_handler_yaml["rr_transform"]
@@ -114,12 +114,12 @@ class Transform:
             self.means = np.zeros_like(self.means)
         if norm_type == "mean":
             if not per_pixel:
-                data = data * self.stds[np.newaxis, :, np.newaxis, np.newaxis] + self.means[np.newaxis, :, np.newaxis, np.newaxis]
+                data = data * self.stds[np.newaxis, VI, np.newaxis, np.newaxis] + self.means[np.newaxis, VI, np.newaxis, np.newaxis]
             else:
                 data = data * self.stds + self.means
         elif norm_type == "minmax" or norm_type == "quant":
             if not per_pixel:
-                data = ((data + 1) / 2) * (self.maxs[np.newaxis, :, np.newaxis, np.newaxis] - self.mins[np.newaxis, :, np.newaxis, np.newaxis]) + self.mins[np.newaxis, :, np.newaxis, np.newaxis]
+                data = ((data + 1) / 2) * (self.maxs[np.newaxis, VI, np.newaxis, np.newaxis] - self.mins[np.newaxis, VI, np.newaxis, np.newaxis]) + self.mins[np.newaxis, VI, np.newaxis, np.newaxis]
             else:
                 data = ((data + 1) / 2) * (self.maxs - self.mins) + self.mins
         if rr_transform["symetrization"]:
@@ -135,11 +135,11 @@ class Transform:
         print("Detransform OK.")
         return data
 
-    def print_data_detransf(self, data, step):
+    def print_data_detransf(self, data, step, VI, VI_f):
         numpy_files = [os.path.join(real_data_dir, x) for x in os.listdir(real_data_dir) if x.endswith(".npy")]
         random_files = np.random.choice(numpy_files, size=4, replace=False)
         reals = np.array([np.load(file) for file in random_files])
-        data_to_print = np.concatenate((data[:12], reals), axis=0)
+        data_to_print = np.concatenate((data[:12, VI_f], reals[:,VI]), axis=0)
         save_dir = f"{self.config.data_dir_f[:-1]}_detranformed/"
         os.makedirs(save_dir, exist_ok=True)
 
@@ -151,7 +151,7 @@ class Transform:
 
         print("Data printed.")
     
-    def transform(self, data):
+    def transform(self, data, VI):
         means, stds, maxs, mins = copy.deepcopy(self.means), copy.deepcopy(self.stds), copy.deepcopy(self.maxs), copy.deepcopy(self.mins)
         norm_type = self.dataset_handler_yaml["normalization"]["type"]
         rr_transform = self.dataset_handler_yaml["rr_transform"]
@@ -196,8 +196,8 @@ class Transform:
                     for _ in range(self.dataset_handler_yaml["normalization"]["for_rr"]["blur_iteration"]):
                         maxs[0] = scipy.ndimage.convolve(maxs[0], gaussian_filter, mode='mirror')
             else:
-                maxs = maxs[np.newaxis, :, np.newaxis, np.newaxis]
-                mins = mins[np.newaxis, :, np.newaxis, np.newaxis]
+                maxs = maxs[np.newaxis, VI, np.newaxis, np.newaxis]
+                mins = mins[np.newaxis, VI, np.newaxis, np.newaxis]
         # if gaussian_std != 0:
         #     mask_no_rr = (data[:, 0] <= gaussian_std)
         #     data[:, 0] = data[:, 0] + gaussian_noise * mask_no_rr
@@ -462,7 +462,7 @@ def load_batch(file_list, number, var_indices_real=None, var_indices_fake=None, 
                 raise ValueError(f"Issue with the population. number ({number}) larger than population ({len(file_list)}) or negative.")
             print(f"Loading batch of {number} files")
             threads = []
-            for file_idx, file_npy in enumerate(file_list):
+            for file_idx, file_npy in enumerate(file_list[:number]):
                 thread = threading.Thread(target=load_npy, args=(file_npy, file_idx, var_indices_real, crop_indices, Mat))
                 threads.append(thread)
                 thread.start()
@@ -561,9 +561,9 @@ def eval_distance_metrics(config, Transformer, metrics_list, dataset, n_samples_
             assert(type(dataset['fake']) == list)
             fake_data = load_batch(dataset['fake'], n_samples_1, var_indices_fake=VI_f, crop_indices=CI, option='fake', mean_pert=mean_pert)
             print('fake data loaded')
-            fake_data = Transformer.detransform(fake_data, step)
+            fake_data = Transformer.detransform(fake_data, step, VI)
             # fake_data[:, 0] = np.clip(fake_data[:, 0], a_min=None, a_max=350)
-            Transformer.print_data_detransf(fake_data, step)
+            Transformer.print_data_detransf(fake_data, step, VI, VI_f)
             
         if option == 'from_matrix':
             assert (type(dataset['fake'] == str))
@@ -732,7 +732,7 @@ def global_dataset_eval(data, option='from_names', mean_pert=False):
             assert(type(dataset)==list)
             print('loading fake data')
             data = load_batch(dataset, n_samples, var_indices_fake=VI_f, crop_indices=CI, option=data_option, mean_pert=mean_pert)
-            data = Transformer.detransform(data, step)
+            data = Transformer.detransform(data, step, VI)
             # data[:, 0] = np.clip(data[:, 0], a_min=None, a_max=350)
             
         elif data_option == 'real':

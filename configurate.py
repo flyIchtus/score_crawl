@@ -144,10 +144,10 @@ def getAndNameDirs(option='rigid'):
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--root_expe_path', type = str, help = 'Root of dir expe', default = '/scratch/mrmn/brochetc/')
-        parser.add_argument('--names', type = str2list, help = 'Experiment sub-dirs', default = [''])
-        parser.add_argument('--variables', type = str2list, nargs="+", default=['u','v','t2m','z500','t850','tpw850'],
+        parser.add_argument('--names', type = str2list, help = 'Experiment sub-dirs', default = ["normal_reduced/"])
+        parser.add_argument('--variables', type = str2list, nargs="+", default=['u','v','t2m'],
             help = 'List of subset of variables to compute metrics on') # provide as: --variables ['u','v'] ['t2m'] for instance (list after list)
-        parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
+        parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 20)
         parser.add_argument('--list_steps', type=str2list, help='list of steps to compute metrics on', default = ['0'])
         parser.add_argument('--iter', type=int, default=0, help='iterative transform on fake data')
 
@@ -156,7 +156,8 @@ def getAndNameDirs(option='rigid'):
 
         N_samples = multi_config.n_samples
 
-        root_expe_path = multi_config.root_expe_path
+        root_expe_path = base_config.root_expe_path
+        multi_config.root_expe_path = base_config.root_expe_path
 
         data_dir_names = []
         short_names = []
@@ -214,7 +215,7 @@ def getAndNameDirs(option='rigid'):
 
         N_samples = multi_config.n_samples
 
-        root_expe_path = multi_config.root_expe_path
+        root_expe_path = base_config.root_expe_path
 
         data_dir_names = []
         short_names = []
@@ -311,14 +312,20 @@ def select_Config(multi_config, index, option='rigid'):
 
         config.lr0 = 0
         config.batch = 0
-        config.instance_num = 1
+        config.instance_num = 0
 
-        config.mean_pert = multi_config.mean_pert
+        config.mean_pert = None
 
-        config.variables = multi_config.variables[index] if len(multi_config.variables) > 1 else \
-                        multi_config.variables[0] 
+        config.variables = multi_config.variables
         config.fake_prefix = base_config.fake_prefix
         config.real_dataset_labels = base_config.real_dataset_labels
+
+        data_transform_config = f"{base_config.exp_config_dir}{base_config.data_transform_config_filename}"
+        print(f"Config file: {data_transform_config}")
+        with open(data_transform_config, "r") as data_transform_config_file: 
+            data_transform_config_yaml = yaml.safe_load(data_transform_config_file)
+        data_transform_config = data_transform_config_yaml
+        config.data_transform_config = data_transform_config
     
     elif option=='samples_log' :
         
@@ -360,7 +367,7 @@ class Experiment():
 
     def __init__(self, expe_config):
 
-        self.data_dir_f = expe_config.data_dir_f
+        self.data_dir_f = expe_config.data_dir_f + 'samples/'
         self.log_dir = expe_config.log_dir
         self.expe_dir = self.log_dir[:-4]
 
@@ -373,6 +380,9 @@ class Experiment():
         ###### variable indices selection : unchanged if subset is [], else selected
         indices = retrieve_domain_parameters(self.expe_dir, self.instance_num)
         self.CI, self.var_names = indices
+
+        print(self.var_names)
+
         self.dom_size = np.abs(self.CI[1]-self.CI[0])
         
         ########### Subset selection #######
