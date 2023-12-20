@@ -143,9 +143,8 @@ def getAndNameDirs(option='rigid'):
         """
 
         parser = argparse.ArgumentParser()
-        parser.add_argument('--root_expe_path', type = str, help = 'Root of dir expe', default = '/scratch/mrmn/brochetc/')
-        parser.add_argument('--names', type = str2list, help = 'Experiment sub-dirs', default = [''])
-        parser.add_argument('--variables', type = str2list, nargs="+", default=['u','v','t2m','z500','t850','tpw850'],
+        parser.add_argument('--names', type = str2list, help = 'Experiment sub-dirs', default = [""])
+        parser.add_argument('--variables', type = str2list, nargs="+", default=['u','v','t2m'],#,'z500','t850','tpw850'],
             help = 'List of subset of variables to compute metrics on') # provide as: --variables ['u','v'] ['t2m'] for instance (list after list)
         parser.add_argument('--n_samples', type = int, help = 'Set of experiments to dig in.', default = 100)
         parser.add_argument('--list_steps', type=str2list, help='list of steps to compute metrics on', default = ['0'])
@@ -156,7 +155,7 @@ def getAndNameDirs(option='rigid'):
 
         N_samples = multi_config.n_samples
 
-        root_expe_path = multi_config.root_expe_path
+        root_expe_path = base_config.root_expe_path
 
         data_dir_names = []
         short_names = []
@@ -188,6 +187,7 @@ def getAndNameDirs(option='rigid'):
         multi_config.log_dir_names = log_dir_names
         multi_config.short_names = short_names
         multi_config.list_steps = list_steps
+        multi_config.mean_pert=False
 
         multi_config.length = len(data_dir_names)
 
@@ -311,7 +311,7 @@ def select_Config(multi_config, index, option='rigid'):
 
         config.lr0 = 0
         config.batch = 0
-        config.instance_num = 1
+        config.instance_num = 0
 
         config.mean_pert = multi_config.mean_pert
 
@@ -319,6 +319,13 @@ def select_Config(multi_config, index, option='rigid'):
                         multi_config.variables[0] 
         config.fake_prefix = base_config.fake_prefix
         config.real_dataset_labels = base_config.real_dataset_labels
+
+        data_transform_config = f"{base_config.exp_config_dir}/{base_config.data_transform_config_filename}"
+        print(f"Config file: {data_transform_config}")
+        with open(data_transform_config, "r") as data_transform_config_file: 
+            data_transform_config_yaml = yaml.safe_load(data_transform_config_file)
+        data_transform_config = data_transform_config_yaml
+        config.data_transform_config = data_transform_config
     
     elif option=='samples_log' :
         
@@ -340,6 +347,13 @@ def select_Config(multi_config, index, option='rigid'):
 
         config.fake_prefix = multi_config.fake_prefix
         config.real_dataset_labels = base_config.real_dataset_labels
+
+        data_transform_config = f"{base_config.exp_config_dir}/{base_config.data_transform_config_filename}"
+        print(f"Config file: {data_transform_config}")
+        with open(data_transform_config, "r") as data_transform_config_file: 
+            data_transform_config_yaml = yaml.safe_load(data_transform_config_file)
+        data_transform_config = data_transform_config_yaml
+        config.data_transform_config = data_transform_config
         
     else :
         raise ValueError('option {} not found'.format(option))
