@@ -122,7 +122,7 @@ class criterion2D(metric2D):
         ################## Metrics catalogue #####################
         
 standalone_metrics = {'spectral_compute','spectral_distrib', 'struct_metric','ls_metric', 'IntraMapVariance',
-                    'InterMapVariance', 'quant_map'}
+                    'InterMapVariance', 'quant_map', 'quantiles_non_zeros'}
 
 distance_metrics = {'Orography_RMSE', 'W1_Center', "W1_Center_NUMPY", "W1_random",
                     "W1_random_NUMPY",
@@ -234,8 +234,13 @@ ls_dist = metric2D('Correlation length RMSE', lambda real, fake : ls.length_scal
 # quantile scores
 
 qlist = [0.01, 0.1, 0.75, 0.9, 0.99]
+qlist_non_zeros = [0.1, 0.25, 0.5, 0.75, 0.9]
 
 quant_metric = metric2D('Quantiles RMSE score', lambda real, fake : quant.quantile_score(real, fake, qlist = qlist), \
                           vars_wo_orog)
-quant_map = metric2D('Quantiles RMSE score', lambda data : quant.quantiles(data, qlist = qlist), \
+quant_map = metric2D('Quantiles', lambda data : quant.quantiles(data, qlist = qlist), \
                           vars_wo_orog)
+quantiles_non_zeros = metric2D('Quantiles', lambda data : quant.quantiles_non_zeros(data, qlist = qlist_non_zeros), \
+                          vars_wo_orog)
+
+                          

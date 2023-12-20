@@ -447,7 +447,6 @@ class EnsembleMetricsCalculator(Experiment):
             RES = {program_idx: {0: result} for program_idx, result in result_dict_list.items()}
             print(f"RES.keys(): {RES.keys()}")
             print(f"RES[0].keys(): {RES[0].keys()}")
-            print(f"RES[0][0].keys(): {RES[0][0].keys()}")
             return RES
 
         elif option == 'fake':
@@ -466,7 +465,6 @@ class EnsembleMetricsCalculator(Experiment):
                 RES[prog_idx] = result_dict_list
             print(f"RES.keys(): {RES.keys()}")
             print(f"RES[0].keys(): {RES[0].keys()}")
-            print(f"RES[0][0].keys(): {RES[0][0].keys()}")
             return RES
 
 def check_number_files(files, n_samples, step, steps):

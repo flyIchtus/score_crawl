@@ -12,13 +12,15 @@ code snippets
 import warnings
 
 warnings.filterwarnings("error")
+import matplotlib
 
+matplotlib.use('Agg')
 import asyncio
 import concurrent.futures
+import copy
 import os
 import random
 import threading
-import copy
 from glob import glob
 
 import base_config
