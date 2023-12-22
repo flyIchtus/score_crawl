@@ -31,7 +31,7 @@ def plot2D_histo(var2var_f, var2var_r, levels, output_dir, add_name):
     
     assert bivariates_f.shape==bivariates_r.shape
     
-    ncouples=bivariates_f.shape[0]
+    ncouples = bivariates_f.shape[0]
     
     fig,axs=plt.subplots(1, ncouples, figsize=(4*ncouples,2*ncouples), sharex=True, sharey=True)
     for i in range(ncouples):
@@ -76,17 +76,19 @@ def var2Var_hist(data, bins, density=True):
                 passed as array inputs
     """
     channels=data.shape[1]
-    var_couples=combinations_with_replacement(range(channels), 2)
-    ncouples=channels*(channels-1)//2
+    var_couples = combinations_with_replacement(range(channels), 2)
+    ncouples = channels*(channels-1)//2
     
     if type(bins)==int :
-        Bins=np.zeros((ncouples*2,bins+1))
-        bivariates=np.zeros((ncouples,bins,bins))
+        print('bin is int')
+        Bins = np.zeros((ncouples*2,bins+1))
+        bivariates = np.zeros((ncouples,bins,bins))
         
     
     
     elif type(bins)==np.ndarray:
-        Bins=bins
+        print('bins is array')
+        Bins = bins
         bivariates=np.zeros((ncouples,Bins.shape[1]-1, Bins.shape[1]-1))
         
     k=0
@@ -99,7 +101,7 @@ def var2Var_hist(data, bins, density=True):
                                 np.histogram2d(data[:,i], data[:,j], bins=bins, density=density)
             elif type(bins)==np.ndarray:
                 bivariates[k], _, _=\
-                                np.histogram2d(data[:,i], data[:,j], bins=Bins[k], density=density)
+                                np.histogram2d(data[:,i], data[:,j], bins=[Bins[2*k], Bins[2*k+1]], density=density)
             k+=1
     return bivariates, Bins
 
@@ -169,26 +171,32 @@ def define_levels(bivariates, nlevels):
     
     Returns :
         
-        levels : np.array, shape is C*(C-1)//2 x nlevels : sets of levels, with nlevels for eahc variable couple.
-    
+        levels : np.array, shape is C*(C-1)//2 x nlevels : sets of levels, with nlevels for each variable couple.
+        quantiles : np.array, shape is C*(C-1)//2 x 2 : q90 and q99 quantiles for each variable couple.
+   
     """
     
     Shape=bivariates.shape
     assert len(Shape)==3
-    inter=bivariates.reshape(Shape[0],Shape[1]*Shape[2])
+    inter = bivariates.reshape(Shape[0],Shape[1]*Shape[2])
+    print(inter.shape)
     
-    
-    levels=np.zeros((Shape[0],nlevels))
-    
+    levels = np.zeros((Shape[0],nlevels))
+    quantiles = np.zeros((Shape[0],2))
     for i in range(Shape[0]):
-        b=np.sort(inter[i])
 
-        usable_data=b[b>0].shape[0]
-        
-        N_values=usable_data//nlevels
+        print(i)
+        b = np.sort(inter[i])
+
+        usable_data = b[b>0].shape[0]
+
+        N_values = usable_data // nlevels
+
         assert N_values>2
-        levels[i]=np.log(b[b>0][::N_values])[:nlevels]
-    
+        levels[i] = np.log(b[b>0][::N_values])[:nlevels]
+
+        #quantiles[i] = 0
+
     return levels
 
 
@@ -199,7 +207,10 @@ def space2batch(data, offset):
     
     data_list = []
     for i in range(Shape[1]):
-        data_list.append(np.expand_dims(data[:,i,offset:-offset,offset:-offset].reshape(Shape[0] * (Shape[2] - 2 * offset) * (Shape[3] - 2 * offset)), axis= 1))
+        if offset>0:
+            data_list.append(np.expand_dims(data[:,i,offset:-offset,offset:-offset].reshape(Shape[0] * (Shape[2] - 2 * offset) * (Shape[3] - 2 * offset)), axis= 1))
+        else:
+            data_list.append(np.expand_dims(data[:,i].reshape(Shape[0] * (Shape[2]) * (Shape[3])), axis= 1))
     
     a = np.concatenate(data_list, axis = 1)
     return a
@@ -246,7 +257,7 @@ def total_run(data_f, data_r, batching=False, levels=None):
 
     return var2var_f, var2var_r, levels
 
-def multi_variate_correlations(data_real, data_fake):
+def multi_variate_correlations(data_real, data_fake, Mins = [-1.0,-1.0,-1.0], Maxs = [1.0,1.0,1.0], density=True, offset=0):
     """
     To be used in the metrics evaluation framework
     data_r, data_f : numpy arrays, shape B xC x H xW
@@ -260,28 +271,82 @@ def multi_variate_correlations(data_real, data_fake):
     """
     
     channels=data_fake.shape[1]
-    ncouples2=channels*(channels-1)
+    ncouples2 = channels * (channels-1)
+
+
+    assert len(Mins)==(ncouples2 // 2) and len(Maxs)==(ncouples2 // 2)
     
+    bins = np.linspace(tuple(Mins), tuple(Maxs),101, axis=1)
+
+    if bins.shape[0]==101:
+        bins = bins.transpose()
+    print(bins.shape, bins[:,0], bins[0])
+
+
     
-    bins=np.linspace(tuple([-1 for i in range(ncouples2)]), tuple([1 for i in range(ncouples2)]),101, axis=1)
+    data_f = space2batch(data_fake,offset)
+    data_r = space2batch(data_real,offset)
     
-    data_f=space2batch(data_fake,4)
-    data_r=space2batch(data_real,4)
-    
+    print(data_f.min(), data_f.max())
+    print(data_r.min(), data_r.max())
+
     print(data_f.shape)
     print(data_r.shape)
     
-   
-    bivariates_f, bins_f=var2Var_hist(data_f,bins)
-    bivariates_r, bins_r=var2Var_hist(data_r,bins)
+    print('hist real')
+    bivariates_r, bins_r = var2Var_hist(data_r,100, density=True)
+
+    for k in range(ncouples2):
+        print(k, 'real')
+        #print(bivariates_r[k].min(), bivariates_r[k].max())
+        print(bins_r.shape,bins_r[k].min(), bins_r[k].max())
+    print('hist fake')
+    bivariates_f, bins_f = var2Var_hist(data_f,bins_r, density=True)
+
+    for k in range(ncouples2//2):
+        print(k, 'fakes')
+        print(bivariates_f[k].min(), bivariates_f[k].max())
+        print(bins_f[k].min(), bins_f[k].max())
     
     out_rf=np.zeros((2, ncouples2//2,bivariates_f.shape[-1],bivariates_f.shape[-1]))
+
+    
+        
+
     out_rf[0]=bivariates_r
     out_rf[1]=bivariates_f
     print('out shape',out_rf.shape)
     return out_rf
 
 
+def mean_from_histogram(bins, histogram2d):
 
-    
+    edges = (np.diff(bins[:,0]), np.diff(bins[:,1]))
+
+    x,y = np.meshgrid(edges[0], edges[1])
+
+    x_b, y_b = np.meshgrid(bins[:-1,0], bins[:-1,1])
+
+    areas = x * y
+
+    weight = areas * histogram2d
+
+    print(weight.shape, x.shape, y.shape, areas.shape)
+
+    mean_x = (x_b * weight).sum()
+    mean_y = (y_b * weight).sum()
+
+
+    return mean_x, mean_y, weight, x_b, y_b
+
+def var_from_histogram(bins, histogram2d):
+
+
+    mean_x, mean_y, weight, x_b, y_b = mean_from_histogram(bins, histogram2d)
+
+    mean_x2 = (x_b * x_b * weight).sum()
+    mean_y2 = (y_b * y_b * weight).sum()
+
+
+    return mean_x2 - mean_x**2, mean_y2 - mean_y**2, weight, x_b, y_b
 

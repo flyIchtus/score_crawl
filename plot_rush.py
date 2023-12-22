@@ -95,7 +95,7 @@ suffix = 'raw' if not args.unbiased else 'unbiased'
 print(suffix)
 
 path = os.path.join("/scratch", "mrmn", "brochetc", "GAN_2D", "Exp_StyleGAN_final", "eval_scores_cond")#,"log", f"Set_{set_number}", f"stylegan2_stylegan_dom_{size}_lat-dim_{lat_dim}_bs_{bs}_{lr_D}_{lr_G}_ch-mul_2_vars_{'_'.join(str(var_name) for var_name in var_names)}_noise_{use_noise}")
-outpath = os.path.join("/scratch", "mrmn", "brochetc",  "GAN_2D", "Exp_StyleGAN_final", "eval_scores_cond", "log", f"plot_{args.genexpe}_{suffix}")#,"GAN_2D","tests", f"Set_{set_number}", "plot_metric")
+outpath = os.path.join("/scratch", "mrmn", "brochetc",  "GAN_2D", "Exp_StyleGAN_final", "eval_scores_cond", "log", f"plot_{args.genexpe}_{suffix}_0")#,"GAN_2D","tests", f"Set_{set_number}", "plot_metric")
 
 print(outpath)
 
@@ -106,10 +106,10 @@ arome = False
 # arome = True
 
 standalone_metrics_list = ["spectral_compute", "ls_metric", "quant_map"]
-# standalone_metrics_list = ["quant_map"]
+#standalone_metrics_list = ["quant_map"]
 # standalone_metrics_list = ["spectral_compute"]
 # standalone_metrics_list = []
-distance_metrics_list = ["multivar"] #["W1_random_NUMPY", "W1_Center_NUMPY", "SWD_metric_torch"]
+distance_metrics_list = ["W1_random_NUMPY", "W1_Center_NUMPY", "SWD_metric_torch"] #["multivar_rescale"] #
 # distance_metrics_list = ["W1_random_NUMPY", "W1_Center_NUMPY"]
 
 if arome:
@@ -128,9 +128,9 @@ if arome:
     filename_distance = f"{prefix}_{distance_metrics_str}_1_distance_metrics_rr_u_v_t2m_dom_256{f'_{n_samples}' * 10}.p"
 else:
     filename_standalone = f"{prefix}_{standalone_metrics_str}_standalone_metrics_{n_samples}_0_{suffix}.p"
-    filename_standalone_real = f"random_1_METR_{standalone_metrics_str}_standalone_metrics_16384_0_real_cropped.p"
+    filename_standalone_real = f"normal_spec_METR_{standalone_metrics_str}_standalone_metrics_16384_0_real_cropped.p"
 
-    filename_distance = f"{prefix}_{distance_metrics_str}_distance_metrics_{n_samples}_0_{suffix}.p"
+    filename_distance = f"{prefix}_{distance_metrics_str}_distance_metrics_{n_samples}_0_{suffix}_0.p"
 
 
 def quantile_map(set_number, instance_entry_list, path, outpath, filename_standalone, arome, args):
@@ -371,8 +371,12 @@ def spectral_compare_plot(set_number, instance_entry_list, path, outpath, filena
                     plt.clf()
                     scale = np.linspace(2 * np.pi / 2.6, (45 * 256 // 128) * 2 * np.pi / 2.6, (45 * 256 // 128))
                     scale2 = np.linspace(2 * np.pi / 2.6, (45 * 256 // 128) * 2 * np.pi / 2.6, (45 * 256 // 128 - 3))
-                    plt.plot(scale2, spectral_compute_real, 'k-' , label=labels[1])
-                    plt.plot(scale2, spectral_compute_list, 'r-', label=labels[0])
+                    if len(scale)==spectral_compute_real.shape[0]:
+                        plt.plot(scale, spectral_compute_real, 'k-' , label=labels[1])
+                        plt.plot(scale, spectral_compute_list, 'r-', label=labels[0])
+                    else:
+                        plt.plot(scale2, spectral_compute_real, 'k-' , label=labels[1])
+                        plt.plot(scale2, spectral_compute_list, 'r-', label=labels[0])                       
                     if idx_output_path == 1:
                         plt.ylim([10e-8, 10e-2])
                     plt.title(f"Spectral compute for {var}")
@@ -383,7 +387,11 @@ def spectral_compare_plot(set_number, instance_entry_list, path, outpath, filena
                     plt.legend()
                     plt.savefig(os.path.join(save_dir, f'spectral_compute_{var}_step_{step}.png'))
                     plt.close()
-                    np.save(os.path.join(save_dir, f'spectral_compute_{var}_step_{step}.npy'), np.array([scale2, spectral_compute_list]))
+                    if len(scale)==spectral_compute_real.shape[0]:
+                        np.save(os.path.join(save_dir, f'spectral_compute_{var}_step_{step}.npy'), np.array([scale, spectral_compute_list]))
+                    else:
+                        np.save(os.path.join(save_dir, f'spectral_compute_{var}_step_{step}.npy'), np.array([scale2, spectral_compute_list]))
+
 
 
 def SWD_torch_plot(set_number, instance_entry_list, path, outpath, filename_distance, arome, args):
@@ -452,12 +460,12 @@ def multivariate_plot(set_number, instance_entry_list, path, outpath, filename_d
         # outpath_base = os.path.join(outpath, 'AROME', instance_entry.name, f'SWD_torch/')
         plt.rcParams.update({'font.size': 12})
         
-        Multivar_scores = distance_dict['multivar'].squeeze()
+        Multivar_scores = distance_dict['multivar_rescale'].squeeze()
         print(Multivar_scores.shape)
-        if 'unbiased' not in filename_distance:
-            data_r,data_f = Multivar_scores[0], Multivar_scores[1]
-        else:
-            data_r,data_f = Multivar_scores[1], Multivar_scores[0]
+        #if 'unbiased' not in filename_distance:
+        data_r,data_f = Multivar_scores[0], Multivar_scores[1]
+        #else:
+        #    data_r,data_f = Multivar_scores[1], Multivar_scores[0]
     
         print(data_r.shape, data_f.shape, np.nanmax(data_f), np.nanmax(data_r))
 
@@ -465,32 +473,45 @@ def multivariate_plot(set_number, instance_entry_list, path, outpath, filename_d
     
         ncouples2 = data_f.shape[0]*(data_f.shape[0]-1)
         print(ncouples2)
-        bins = np.linspace(tuple([-1 for i in range(ncouples2)]), tuple([1 for i in range(ncouples2)]),101, axis=1)
-    
+
+        Maxs_tot = np.load('/scratch/mrmn/brochetc/GAN_2D/datasets_full_indexing/stat_files/max_rr.npy')[1:4]
+        Mins_tot = np.load('/scratch/mrmn/brochetc/GAN_2D/datasets_full_indexing/stat_files/min_rr.npy')[1:4]
+
+        mins = [Mins_tot[0], Mins_tot[1], Mins_tot[0], Mins_tot[2] , Mins_tot[1] , Mins_tot[2]]
+        maxs = [Maxs_tot[0], Maxs_tot[1], Maxs_tot[0], Maxs_tot[2] , Maxs_tot[1] , Maxs_tot[2]]
+
+
+        bins = np.linspace(tuple(mins), tuple(maxs),101, axis=1)
+        print(bins.shape)
         ncouples=data_f.shape[0]
         print(ncouples)
         Xs=['u', 'u', 'v']
         Ys=['v','t2m', 't2m']
 
-        fig,axs=plt.subplots(1, ncouples, figsize=(4*ncouples,2*ncouples), sharex=True, sharey=True)
+        fig,axs=plt.subplots(1, ncouples, figsize=(4*ncouples,2*ncouples))#, layout='constrained')#, sharex=True, sharey=True)
 
 
         for i in range(ncouples):
+            print(i,2*i,2*i+1)
+            print(Xs[i], Ys[i])
+            print(bins[2*i], bins[2*i+1])
             cs=axs[i].contourf(bins[2*i][:-1], bins[2*i+1][:-1],np.log(data_r)[i], cmap='plasma', levels=levels[i])
             axs[i].contour(bins[2*i][:-1], bins[2*i+1][:-1], np.log(data_f)[i],cmap='Greys', levels=levels[i])
-            axs[i].set_xlabel(Xs[i], fontsize='large', fontweight='bold')
-            axs[i].set_ylabel(Ys[i], fontsize='large', fontweight='bold')
-
+            axs[i].set_xlabel(Xs[i], fontsize=10, fontweight='bold')
+            axs[i].set_ylabel(Ys[i], fontsize=10, fontweight='bold')
+            axs[i].tick_params(labelsize=10)
+        fig.tight_layout(rect=(0.0,0.07,1.0,1.0))
         if i==ncouples-1:
-            cbax=fig.add_axes([0.9,0.1,0.02,0.83])
-            cb=fig.colorbar(cs, cax=cbax)
+            cbax=fig.add_axes([0.2,0.07,0.6,0.02])
+            cb=fig.colorbar(cs, cax=cbax, orientation='horizontal')
             cb.ax.tick_params(labelsize=10)
+            cb.ax.yaxis.set_label_position('right')
             cb.ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-            cb.set_label('Density (log scale)', fontweight='bold', fontsize='large', rotation=270)
-        #fig.tight_layout(rect=(0.0,0.0,0.9,0.95))
+            cb.set_label('Density (log scale)', fontweight='bold', fontsize=10, rotation=0)
+        
         print("save fig")
         print(outpath_base)
-        plt.savefig(outpath_base+'multi_plot.png')
+        plt.savefig(outpath_base+'multi_plot_rescaled.png')
 
 class instance_entry():
     def __init__(self,string):

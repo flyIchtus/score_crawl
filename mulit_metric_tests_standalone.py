@@ -15,9 +15,10 @@ fake_dir = "/scratch/mrmn/moldovang/tests_CGAN/" #random_['1', '0', '0', '0', '0
 expes = {"extrapolation" : ["extrapolation_['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1']/", "extrap", "genFsemble"],
         "inversion" : ['INVERSION_200/', 'invert', 'invertFsemble'],
         "random_1" : ["random_['1', '0', '0', '0', '0', '0', '1', '0', '1', '0', '1', '1', '0', '1']/", 'random_1', 'genFsemble'], 
-        "random_2" : ["random_['1', '0', '0', '0', '0', '0', '1', '0', '1', '0', '1', '1', '0', '1']/", 'random_1', 'genFsemble'],
+        "random_2" : ["random_['0', '0', '0', '1', '0', '0', '0', '1', '1', '0', '1', '1', '0', '1']/", 'random_2', 'genFsemble'],
         "normal_full" : ["normal_['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1']/", 'normal_full', 'genFsemble'],
         "normal_1" : ["normal_['1', '1', '1', '1', '0', '0', '1', '1', '1', '0', '1', '1', '0', '1']/", 'normal_1', 'genFsemble'],
+        "normal_spec" : ["normal_['1', '1', '0', '0', '1', '0', '0', '1', '0', '0', '0', '0', '0', '0']/", 'normal_spec', 'genFsemble'],
         }
 
 
@@ -29,10 +30,13 @@ labels_file = '/scratch/mrmn/brochetc/GAN_2D/datasets_full_indexing/large_lt/Lar
 parser = argparse.ArgumentParser()
 parser.add_argument('--expe', type=str)
 parser.add_argument('--unbiased', action='store_true')
+parser.add_argument('--offset', type=int, default=0)
 
 args = parser.parse_args()
 
 expe = args.expe
+offset = args.offset
+
 
 fake_dir = fake_dir + expes[expe][0]
 fake_prefix = expes[expe][-1]
@@ -45,6 +49,9 @@ dates = [d[prefix : prefix + 10] for d in os.listdir(real_dir+'samples/') if '_3
 print(len(dates))
 #dates = [d for d in dates if d[:10] not in ['2021-08-14','2021-10-13', '2021-10-18']]
 
+#spectral_compute_offset = METR.metric2D('Power Spectral Density  ',\
+#                   lambda data : Spectral.PowerSpectralDensity(data,offsett=offset), vars_wo_orog)
+print(offset)
 standalone_metrics_list = ["spectral_compute", "ls_metric", "quant_map"]
 distance_metrics_list = ["W1_random_NUMPY", "W1_Center_NUMPY", "SWD_metric_torch"]
 
@@ -83,7 +90,7 @@ for date_idx, date in enumerate(dates):
                 end = 16 if expe=='inversion' else 112
                 step = 1 if expe=='inversion' else 112//(ensemble_members)
 
-                fakes_all = np.load(fake_dir + f"samples/{fake_prefix}_{date}_{lt}_1000.npy", mmap_mode = 'r').astype(np.float32)
+                fakes_all = np.load(fake_dir + f"samples/{fake_prefix}_{date}_{lt}_1000_16_112.npy", mmap_mode = 'r').astype(np.float32)
 
                 fakes.append(fakes_all[0:end:step]) #extracting
                 if args.unbiased:
@@ -93,7 +100,7 @@ for date_idx, date in enumerate(dates):
 
                 real.append(np.load(real_dir + f"samples/Rsemble_{date}_{lt}.npy", mmap_mode = 'r').astype(np.float32)[:ensemble_members])
                 if args.unbiased : 
-                    fakes_unbiased.append(fakes[-1] - fakes_mean + real[-1].mean(axis=0))
+                    fakes_unbiased.append(fakes[-1] - fakes_mean + real[-1])#.mean(axis=0))
             except FileNotFoundError as err:
                 print(err)
                 pass
@@ -119,16 +126,22 @@ dic_res_unbiased = {}
 for metr_name in standalone_metrics_list:
 
     print(metr_name)
+
+    if metr_name =='spectral_compute_offset':
+        metric = spectral_compute_offset
     metric = getattr(METR, metr_name)
 
     if metr_name == 'quant_map':
         fakes = denorm(fakes, Means, Maxs, 0.95)
         real = denorm(real, Means, Maxs, 0.95)
-
+    print('fake')
     dic_res[metr_name] = metric(fakes)
+    print('real')
+    print(real.shape)
     dic_res_real[metr_name] = metric(real)
     if args.unbiased:
-        dic_res_unbiased[metr_name] = metric(real,fakes_unbiased)
+        print('unbiased')
+        dic_res_unbiased[metr_name] = metric(fakes_unbiased)
 
 lt0 = 0 if num_lt > 1 else lt
 
@@ -138,6 +151,9 @@ name_fake_unbiased = os.path.dirname(os.path.realpath(__file__)) +  f"/log/{log_
 
 with open(name_real,'wb') as f:
     pickle.dump(dic_res_real, f)
+
+with open(name_fake,'wb') as f:
+    pickle.dump(dic_res, f)
 
 if args.unbiased:
     with open(name_fake_unbiased,'wb') as f:
